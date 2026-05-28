@@ -2,6 +2,7 @@
 // Demonstra composição e agregação entre as classes do domínio.
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include "user.hpp"
@@ -14,19 +15,19 @@
 int main() {
     // Objetos independentes — existem fora do assistente (agregação)
     User user1("Eduardo", "eduardo@email.com");
-    Model gpt("GPT-4o", 8192, 0.00003);
-    Tool search("web_search", "Busca informacoes na internet");
-    Tool calculator("calculator", "Realiza calculos matematicos");
+    auto gpt = std::make_shared<Model>("GPT-4o", 8192, 0.00003);
+    auto search = std::make_shared<Tool>("web_search", "Busca informacoes na internet");
+    auto calculator = std::make_shared<Tool>("calculator", "Realiza calculos matematicos");
 
     // --- Composição: AiAssistant cria e destrói Sessions ---
     std::cout << "--- COMPOSICAO ---" << std::endl;
     {
         AiAssistant assistant("Gemini Assistant");
-        assistant.set_model(&gpt);
-        assistant.add_tool(&search);
-        assistant.add_tool(&calculator);
+        assistant.set_model(gpt);
+        assistant.add_tool(search);
+        assistant.add_tool(calculator);
 
-        Session* s1 = assistant.create_session(&user1);
+        Session* s1 = assistant.create_session(user1);
         s1->add_message(Message("user", "Ola, como voce funciona?", "2026-05-28 11:00:00"));
         s1->add_message(Message("assistant", "Sou um assistente de IA!", "2026-05-28 11:00:01"));
 
@@ -36,8 +37,8 @@ int main() {
     // --- Agregação: objetos sobrevivem à destruição do assistente ---
     std::cout << "\n--- AGREGACAO ---" << std::endl;
     std::cout << user1.display_info() << " (sobreviveu)" << std::endl;
-    std::cout << "Modelo: " << gpt.get_name() << " (sobreviveu)" << std::endl;
-    std::cout << search.execute("teste") << " (sobreviveu)" << std::endl;
+    std::cout << "Modelo: " << gpt->get_name() << " (sobreviveu)" << std::endl;
+    std::cout << search->execute("teste") << " (sobreviveu)" << std::endl;
 
     return 0;
 }

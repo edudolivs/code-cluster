@@ -113,3 +113,10 @@ classDiagram
 - **Session ◇── User**: agregação — a `Session` referencia (`User*`) um usuário que existe
   independentemente. O destrutor da sessão **não** deleta o usuário, pois este pode
   participar de outras sessões ou continuar existindo após o encerramento.
+
+## Smart Pointers (Questão 4)
+
+- **`AiAssistant::sessions_`** → `vector<unique_ptr<Session>>`: composição — o assistente é dono exclusivo das sessões, então `unique_ptr` expressa posse única e elimina `delete` manual.
+- **`AiAssistant::model_`** → `shared_ptr<Model>`: agregação — o assistente compartilha a posse do modelo com outras possíveis entidades (recurso genuinamente compartilhado). O `shared_ptr` garante que o modelo não seja destruído enquanto o assistente ou outra entidade ainda o utilizar.
+- **`AiAssistant::tools_`** → `vector<shared_ptr<Tool>>`: agregação — o assistente compartilha a posse das ferramentas, que podem ser reutilizadas por outros assistentes. O `shared_ptr` gerencia essa posse compartilhada.
+- **`Session::user_`** → `User&` (referência): agregação — a sessão apenas observa o usuário sem possuí-lo; referência expressa observador sem posse e garante que o usuário sempre existe.

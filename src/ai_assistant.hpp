@@ -6,6 +6,7 @@
 #define AI_ASSISTANT_HPP
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -17,9 +18,9 @@
 class AiAssistant {
 private:
     std::string name_;              // nome do assistente
-    Model* model_;                  // modelo de linguagem utilizado (agregação)
-    std::vector<Tool*> tools_;      // ferramentas disponíveis (agregação)
-    std::vector<Session*> sessions_; // sessões gerenciadas (composição — o assistente é dono)
+    std::shared_ptr<Model> model_;                  // modelo de linguagem utilizado (agregação via shared_ptr)
+    std::vector<std::shared_ptr<Tool>> tools_;      // ferramentas disponíveis (agregação via shared_ptr)
+    std::vector<std::unique_ptr<Session>> sessions_; // sessões gerenciadas (composição via unique_ptr)
 
 public:
     // Construtor com lista de inicialização
@@ -28,12 +29,9 @@ public:
         std::cout << "AiAssistant(\"" << name_ << "\") criado" << std::endl;
     }
 
-    // Destrutor explícito — libera as sessões criadas (composição)
+    // Destrutor explícito — unique_ptr libera as sessões automaticamente (composição)
     ~AiAssistant() {
-        for (Session* session : sessions_) {
-            delete session;
-        }
-        sessions_.clear();
+        sessions_.clear(); // unique_ptr destrói cada Session aqui
         std::cout << "~AiAssistant(\"" << name_ << "\") destruido" << std::endl;
     }
 
@@ -41,21 +39,22 @@ public:
     std::string get_name() const { return name_; }
 
     // Define o modelo de linguagem a ser utilizado
-    void set_model(Model* model) {
+    void set_model(std::shared_ptr<Model> model) {
         model_ = model;
     }
 
     // Adiciona uma ferramenta ao assistente
-    void add_tool(Tool* tool) {
+    void add_tool(std::shared_ptr<Tool> tool) {
         tools_.push_back(tool);
     }
 
     // Cria uma nova sessão para o usuário e a armazena internamente
-    Session* create_session(User* user) {
+    Session* create_session(User& user) {
         int new_id = static_cast<int>(sessions_.size()) + 1;
-        Session* session = new Session(new_id, user);
-        sessions_.push_back(session);
-        return session;
+        auto session = std::make_unique<Session>(new_id, user);
+        Session* ptr = session.get(); // ponteiro observador para o chamador
+        sessions_.push_back(std::move(session));
+        return ptr;
     }
 
     // Lista todas as ferramentas registradas e seus estados
