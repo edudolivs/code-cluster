@@ -1,0 +1,39 @@
+// Classe que representa um modelo de linguagem (LLM).
+// Armazena nome, limite de tokens e custo por token, com método para estimar custo.
+
+#ifndef MODEL_HPP
+#define MODEL_HPP
+
+#include <string>
+
+class Model {
+private:
+    std::string name_;       // nome do modelo
+    int max_tokens_;         // limite máximo de tokens
+    double cost_per_token_;  // custo por token em dólares
+
+public:
+    // Construtor com lista de inicialização
+    Model(const std::string& name, int max_tokens, double cost_per_token)
+        : name_(name), max_tokens_(max_tokens), cost_per_token_(cost_per_token) {}
+
+    // Getters const
+    std::string get_name() const { return name_; }
+    int get_max_tokens() const { return max_tokens_; }
+    double get_cost_per_token() const { return cost_per_token_; }
+
+    // Calcula o custo estimado para uma quantidade de tokens,
+    // limitando ao máximo permitido pelo modelo
+    double estimate_cost(int tokens) const {
+        int effective_tokens = tokens;
+        if (effective_tokens > max_tokens_) {
+            effective_tokens = max_tokens_;
+        }
+        if (effective_tokens < 0) {
+            effective_tokens = 0;
+        }
+        return effective_tokens * cost_per_token_;
+    }
+};
+
+#endif // MODEL_HPP
