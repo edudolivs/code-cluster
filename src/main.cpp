@@ -12,33 +12,70 @@
 #include "session.hpp"
 #include "ai_assistant.hpp"
 
+using std::cout;
+using std::endl;
+
 int main() {
-    // Objetos independentes — existem fora do assistente (agregação)
+    // Instanciando objetos independentes que serão usados nas demonstrações
     User user1("Eduardo", "eduardo@email.com");
     auto gpt = std::make_shared<Model>("GPT-4o", 8192, 0.00003);
     auto search = std::make_shared<Tool>("web_search", "Busca informacoes na internet");
     auto calculator = std::make_shared<Tool>("calculator", "Realiza calculos matematicos");
 
-    // --- Composição: AiAssistant cria e destrói Sessions ---
-    std::cout << "--- COMPOSICAO ---" << std::endl;
+    // ========================================================================
+    // PARTE 1: Demonstrações de Métodos com Lógica
+    // ========================================================================
+    cout << "=== 1. DEMONSTRACOES DE METODOS COM LOGICA ===" << endl;
+    
+    // Demonstração lógica - Message
+    Message demo_msg("user", "Ola, como voce funciona?", "2026-05-28 11:00:00");
+    cout << "\n[Message::format()]\n" << demo_msg.format() << endl;
+
+    // Demonstração lógica - Model
+    cout << "\n[Model::estimate_cost(5000)] Custo: $" << gpt->estimate_cost(5000) << endl;
+    
+    // Demonstração lógica - Tool
+    cout << "\n[Tool::execute()] " << search->execute("teste") << endl;
+
+    // Configurando um assistente para demonstrar Session e AiAssistant
+    AiAssistant main_assistant("Gemini Assistant");
+    main_assistant.set_model(gpt);
+    main_assistant.add_tool(search);
+    main_assistant.add_tool(calculator);
+
+    Session* main_session = main_assistant.create_session(user1);
+    main_session->add_message(demo_msg);
+
+    // Demonstração lógica - Session
+    cout << "\n[Session::summarize()]\n" << main_session->summarize() << endl;
+    
+    // Demonstração lógica - AiAssistant
+    cout << "\n[AiAssistant::status_report()]\n" << main_assistant.status_report() << endl;
+    cout << "\n[AiAssistant::list_tools()]\n" << main_assistant.list_tools() << endl;
+
+    // ========================================================================
+    // PARTE 2: Teste de Composição
+    // ========================================================================
+    cout << "\n=== 2. TESTE DE COMPOSICAO ===" << endl;
+    cout << "Criando um escopo isolado para um AiAssistant temporario..." << endl;
     {
-        AiAssistant assistant("Gemini Assistant");
-        assistant.set_model(gpt);
-        assistant.add_tool(search);
-        assistant.add_tool(calculator);
+        AiAssistant temp_assistant("Assistente Temporario");
+        Session* temp_session = temp_assistant.create_session(user1);
+        temp_session->add_message(Message("user", "Mensagem descartavel", "Agora"));
+        
+        cout << ">> Saindo do escopo temporario (Ocorreram as destruicoes em cascata):" << endl;
+    } // Destrutor de AiAssistant -> Deleta Session -> Destrói Message
+    cout << "<< Fim do escopo temporario." << endl;
 
-        Session* s1 = assistant.create_session(user1);
-        s1->add_message(Message("user", "Ola, como voce funciona?", "2026-05-28 11:00:00"));
-        s1->add_message(Message("assistant", "Sou um assistente de IA!", "2026-05-28 11:00:01"));
+    // ========================================================================
+    // PARTE 3: Teste de Agregação
+    // ========================================================================
+    cout << "\n=== 3. TESTE DE AGREGACAO ===" << endl;
+    cout << "Verificando que objetos agregados sobrevivem:" << endl;
+    cout << "- Usuario: " << user1.display_info() << " (Sobreviveu)" << endl;
+    cout << "- Modelo: " << gpt->get_name() << " (Sobreviveu)" << endl;
+    cout << "- Ferramenta: " << search->get_name() << " (Sobreviveu)" << endl;
 
-        std::cout << assistant.status_report() << std::endl;
-    } // ~AiAssistant → deleta Sessions → ~Session imprime destruição
-
-    // --- Agregação: objetos sobrevivem à destruição do assistente ---
-    std::cout << "\n--- AGREGACAO ---" << std::endl;
-    std::cout << user1.display_info() << " (sobreviveu)" << std::endl;
-    std::cout << "Modelo: " << gpt->get_name() << " (sobreviveu)" << std::endl;
-    std::cout << search->execute("teste") << " (sobreviveu)" << std::endl;
-
+    cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;
 }
