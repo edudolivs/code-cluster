@@ -21,13 +21,14 @@ private:
 public:
     // Construtor com lista de inicialização
     Session(int id, User* user)
-        : id_(id), messages_(), user_(user) {}
+        : id_(id), messages_(), user_(user) {
+        std::cout << "  Session(" << id_ << ") criada" << std::endl;
+    }
 
     // Destrutor explícito com efeito observável — imprime mensagem ao encerrar sessão
     ~Session() {
-        std::cout << "[~Session] Sessao " << id_
-                  << " encerrada. " << messages_.size()
-                  << " mensagem(ns) descartada(s)." << std::endl;
+        std::cout << "  ~Session(" << id_ << ") destruida ("
+                  << messages_.size() << " mensagem(ns) descartada(s))" << std::endl;
     }
 
     // Getters const
@@ -38,6 +39,7 @@ public:
     // Adiciona uma mensagem à sessão
     void add_message(const Message& message) {
         messages_.push_back(message);
+        std::cout << "    Message(\"" << message.get_role() << "\") adicionada" << std::endl;
     }
 
     // Gera um resumo da sessão contendo id, usuário e contagem de mensagens

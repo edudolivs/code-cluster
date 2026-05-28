@@ -24,17 +24,17 @@ private:
 public:
     // Construtor com lista de inicialização
     AiAssistant(const std::string& name)
-        : name_(name), model_(nullptr), tools_(), sessions_() {}
+        : name_(name), model_(nullptr), tools_(), sessions_() {
+        std::cout << "AiAssistant(\"" << name_ << "\") criado" << std::endl;
+    }
 
     // Destrutor explícito — libera as sessões criadas (composição)
     ~AiAssistant() {
-        std::cout << "[~AiAssistant] Encerrando assistente '" << name_
-                  << "'. Liberando " << sessions_.size()
-                  << " sessao(oes)..." << std::endl;
         for (Session* session : sessions_) {
             delete session;
         }
         sessions_.clear();
+        std::cout << "~AiAssistant(\"" << name_ << "\") destruido" << std::endl;
     }
 
     // Getter const
