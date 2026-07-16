@@ -85,9 +85,9 @@ classDiagram
     class Session {
         -int id_
         -vector~Message~ messages_
-        -User* user_
+        -User& user_
         +get_id() int
-        +get_user() User*
+        +get_user() const User&
         +get_message_count() size_t
         +add_message(Message) void
         +summarize() string
@@ -96,13 +96,13 @@ classDiagram
 
     class AiAssistant {
         -string name_
-        -Model* model_
-        -vector~Tool*~ tools_
-        -vector~Session*~ sessions_
+        -shared_ptr~Model~ model_
+        -vector~shared_ptr~Tool~~ tools_
+        -vector~unique_ptr~Session~~ sessions_
         +get_name() string
-        +set_model(Model*) void
-        +add_tool(Tool*) void
-        +create_session(User*) Session*
+        +set_model(shared_ptr~Model~) void
+        +add_tool(shared_ptr~Tool~) void
+        +create_session(User&) Session&
         +list_tools() string
         +status_report() string
         +~AiAssistant()

@@ -48,11 +48,11 @@ int main() {
     main_assistant.add_tool(search);
     main_assistant.add_tool(calculator);
 
-    Session* main_session = main_assistant.create_session(user1);
-    main_session->add_message(demo_msg);
+    Session& main_session = main_assistant.create_session(user1);
+    main_session.add_message(demo_msg);
 
     // Demonstração lógica - Session
-    cout << "\n[Session::summarize()]\n" << main_session->summarize() << endl;
+    cout << "\n[Session::summarize()]\n" << main_session.summarize() << endl;
     
     // Demonstração lógica - AiAssistant
     cout << "\n[AiAssistant::status_report()]\n" << main_assistant.status_report() << endl;
@@ -65,8 +65,8 @@ int main() {
     cout << "Criando um escopo isolado para um AiAssistant temporario..." << endl;
     {
         AiAssistant temp_assistant("Assistente Temporario");
-        Session* temp_session = temp_assistant.create_session(user1);
-        temp_session->add_message(Message("user", "Mensagem descartavel", "Agora"));
+        Session& temp_session = temp_assistant.create_session(user1);
+        temp_session.add_message(Message("user", "Mensagem descartavel", "Agora"));
         
         cout << ">> Saindo do escopo temporario (Ocorreram as destruicoes em cascata):" << endl;
     } // Destrutor de AiAssistant -> Deleta Session -> Destrói Message

@@ -48,13 +48,14 @@ public:
         tools_.push_back(tool);
     }
 
-    // Cria uma nova sessão para o usuário e a armazena internamente
-    Session* create_session(User& user) {
+    // Cria uma nova sessão para o usuário e a armazena internamente.
+    // Retorna referência observadora — o assistente permanece dono (unique_ptr).
+    Session& create_session(User& user) {
         int new_id = static_cast<int>(sessions_.size()) + 1;
         auto session = std::make_unique<Session>(new_id, user);
-        Session* ptr = session.get(); // ponteiro observador para o chamador
+        Session& ref = *session;
         sessions_.push_back(std::move(session));
-        return ptr;
+        return ref;
     }
 
     // Lista todas as ferramentas registradas e seus estados
