@@ -4,12 +4,14 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "user.hpp"
 #include "model.hpp"
 #include "tool.hpp"
 #include "web_search_tool.hpp"
 #include "calculator_tool.hpp"
+#include "tool_utils.hpp"
 #include "message.hpp"
 #include "session.hpp"
 #include "ai_assistant.hpp"
@@ -86,6 +88,36 @@ int main() {
     Tool* raw_tool = new WebSearchTool();
     delete raw_tool;  // cadeia esperada: ~WebSearchTool (derivada) -> ~Tool (base)
     cout << "(derivada destruida ANTES da base -> destrutor virtual correto)" << endl;
+
+    // ========================================================================
+    // PARTE 5: Polimorfismo Dinamico (Q2)
+    // ========================================================================
+    cout << "\n=== 5. POLIMORFISMO DINAMICO ===" << endl;
+    {
+        // (A) vector de unique_ptr para a base com todas as derivadas
+        std::vector<std::unique_ptr<Tool>> tools;
+        tools.push_back(std::make_unique<WebSearchTool>());
+        tools.push_back(std::make_unique<CalculatorTool>());
+
+        // (B) iteração via ponteiro base — despacho virtual chama a derivada certa
+        cout << "Iterando via ponteiro base (despacho virtual):" << endl;
+        for (const auto& tool : tools) {
+            cout << "  " << tool->describe() << endl;
+            cout << "  " << tool->execute("consulta polimorfica") << endl;
+        }
+
+        // (D) função livre via ponteiro base (não-proprietário)
+        const Tool* most_expensive = most_expensive_tool(tools);
+        if (most_expensive != nullptr) {
+            cout << "Ferramenta mais cara: " << most_expensive->get_name()
+                 << " ($" << most_expensive->cost_per_call()
+                 << " por chamada)" << endl;
+        }
+
+        // (C) ao sair do escopo, cada unique_ptr destrói sua derivada -> base
+        cout << ">> Saindo do escopo do vetor (destruicao em cadeia):" << endl;
+    }
+    cout << "<< Vetor destruido sem vazamentos." << endl;
 
     cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;
