@@ -42,8 +42,8 @@ classDiagram
         -string name_
         -string description_
         -bool enabled_
-        +execute(string)* string
-        +cost_per_call()* double
+        +execute(string) string*
+        +cost_per_call() double*
         +describe() string
         +get_name() string
         +get_description() string
@@ -69,7 +69,7 @@ classDiagram
 
     class Billable {
         <<interface>>
-        +billed_cost()* double
+        +billed_cost() double*
     }
 
     class Message {
@@ -160,16 +160,16 @@ classDiagram
 - **`AiAssistant::tools_`** → `vector<shared_ptr<Tool>>`: agregação — o assistente compartilha a posse das ferramentas, que podem ser reutilizadas por outros assistentes. O `shared_ptr` gerencia essa posse compartilhada.
 - **`Session::user_`** → `User&` (referência): agregação — a sessão apenas observa o usuário sem possuí-lo; referência expressa observador sem posse e garante que o usuário sempre existe.
 
-## Heranca Avancada (TP2 — Questao 3)
+## Herança Avançada (TP2 — Questão 3)
 
 - **Interface pura `Billable`**: sem estado, apenas `billed_cost() = 0` e destrutor
   virtual. Modela a *capacidade* de gerar custo, implementada tanto dentro da
   hierarquia de `Tool` (`WebSearchTool`) quanto fora dela (`Model`).
-- **Heranca multipla segura**: `WebSearchTool : public Tool, public Billable` —
-  publica nos dois casos e sem diamante, pois `Billable` nao carrega estado.
-- **`final` em `CalculatorTool`**: a calculadora e uma folha concreta e completa da
-  hierarquia — seu contrato (avaliar expressoes com custo fixo) nao admite
-  especializacao. Marcar a classe como `final` garante em tempo de compilacao que
-  ninguem herde dela para alterar esse comportamento (qualquer tentativa gera erro
-  "cannot derive from final"), documenta a intencao de design e permite ao
-  compilador devirtualizar chamadas quando o tipo estatico e `CalculatorTool`.
+- **Herança múltipla segura**: `WebSearchTool : public Tool, public Billable` —
+  pública nos dois casos e sem diamante, pois `Billable` não carrega estado.
+- **`final` em `CalculatorTool`**: a calculadora é uma folha concreta e completa da
+  hierarquia — seu contrato (avaliar expressões com custo fixo) não admite
+  especialização. Marcar a classe como `final` garante em tempo de compilação que
+  ninguém herde dela para alterar esse comportamento (qualquer tentativa gera erro
+  "cannot derive from final"), documenta a intenção de design e permite ao
+  compilador devirtualizar chamadas quando o tipo estático é `CalculatorTool`.
