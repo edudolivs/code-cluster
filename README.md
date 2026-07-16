@@ -28,10 +28,13 @@ classDiagram
         -string name_
         -int max_tokens_
         -double cost_per_token_
+        -int tokens_used_
         +get_name() string
         +get_max_tokens() int
         +get_cost_per_token() double
         +estimate_cost(int) double
+        +register_usage(int) void
+        +billed_cost() double
     }
 
     class Tool {
@@ -55,12 +58,18 @@ classDiagram
         +cost_per_call() double
         +describe() string
         +get_calls() int
+        +billed_cost() double
     }
 
     class CalculatorTool {
         <<final>>
         +execute(string) string
         +cost_per_call() double
+    }
+
+    class Billable {
+        <<interface>>
+        +billed_cost()* double
     }
 
     class Message {
@@ -106,6 +115,8 @@ classDiagram
     Session "1" o-- "1" User : pertence a
     Tool <|-- WebSearchTool : herda
     Tool <|-- CalculatorTool : herda
+    Billable <|.. WebSearchTool : implementa
+    Billable <|.. Model : implementa
 ```
 
 ## Composição e Agregação (Questão 3)
@@ -148,3 +159,17 @@ classDiagram
 - **`AiAssistant::model_`** → `shared_ptr<Model>`: agregação — o assistente compartilha a posse do modelo com outras possíveis entidades (recurso genuinamente compartilhado). O `shared_ptr` garante que o modelo não seja destruído enquanto o assistente ou outra entidade ainda o utilizar.
 - **`AiAssistant::tools_`** → `vector<shared_ptr<Tool>>`: agregação — o assistente compartilha a posse das ferramentas, que podem ser reutilizadas por outros assistentes. O `shared_ptr` gerencia essa posse compartilhada.
 - **`Session::user_`** → `User&` (referência): agregação — a sessão apenas observa o usuário sem possuí-lo; referência expressa observador sem posse e garante que o usuário sempre existe.
+
+## Heranca Avancada (TP2 — Questao 3)
+
+- **Interface pura `Billable`**: sem estado, apenas `billed_cost() = 0` e destrutor
+  virtual. Modela a *capacidade* de gerar custo, implementada tanto dentro da
+  hierarquia de `Tool` (`WebSearchTool`) quanto fora dela (`Model`).
+- **Heranca multipla segura**: `WebSearchTool : public Tool, public Billable` —
+  publica nos dois casos e sem diamante, pois `Billable` nao carrega estado.
+- **`final` em `CalculatorTool`**: a calculadora e uma folha concreta e completa da
+  hierarquia — seu contrato (avaliar expressoes com custo fixo) nao admite
+  especializacao. Marcar a classe como `final` garante em tempo de compilacao que
+  ninguem herde dela para alterar esse comportamento (qualquer tentativa gera erro
+  "cannot derive from final"), documenta a intencao de design e permite ao
+  compilador devirtualizar chamadas quando o tipo estatico e `CalculatorTool`.

@@ -1,16 +1,21 @@
 // Classe que representa um modelo de linguagem (LLM).
-// Armazena nome, limite de tokens e custo por token, com método para estimar custo.
+// Implementa a interface Billable: armazena nome, limite de tokens,
+// custo por token e tokens usados. Fornece metodos para estimar custo
+// e registrar uso de tokens.
 
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
 #include <string>
 
-class Model {
+#include "billable.hpp"
+
+class Model : public Billable {
 private:
     std::string name_;       // nome do modelo
     int max_tokens_;         // limite máximo de tokens
     double cost_per_token_;  // custo por token em dólares
+    int tokens_used_ = 0;    // total de tokens processados
 
 public:
     // Construtor com lista de inicialização
@@ -33,6 +38,18 @@ public:
             effective_tokens = 0;
         }
         return effective_tokens * cost_per_token_;
+    }
+
+    // Registra tokens consumidos pelo modelo (ignora valores não-positivos)
+    void register_usage(int tokens) {
+        if (tokens > 0) {
+            tokens_used_ += tokens;
+        }
+    }
+
+    // Override da interface Billable — custo total dos tokens consumidos
+    double billed_cost() const override {
+        return tokens_used_ * cost_per_token_;
     }
 };
 

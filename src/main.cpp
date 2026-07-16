@@ -12,6 +12,7 @@
 #include "web_search_tool.hpp"
 #include "calculator_tool.hpp"
 #include "tool_utils.hpp"
+#include "billable.hpp"
 #include "message.hpp"
 #include "session.hpp"
 #include "ai_assistant.hpp"
@@ -118,6 +119,18 @@ int main() {
         cout << ">> Saindo do escopo do vetor (destruicao em cadeia):" << endl;
     }
     cout << "<< Vetor destruido sem vazamentos." << endl;
+
+    // ========================================================================
+    // PARTE 6: Interface Pura Billable (Q3)
+    // ========================================================================
+    cout << "\n=== 6. INTERFACE PURA (Billable) ===" << endl;
+    gpt->register_usage(5000);
+    cout << "Fatura do modelo " << gpt->get_name()
+         << " (5000 tokens usados):" << endl;
+    print_bill(*gpt);  // Model passado como const Billable&
+    cout << "Fatura da ferramenta " << search->get_name()
+         << " (" << search->get_calls() << " busca(s) realizada(s)):" << endl;
+    print_bill(*search);  // WebSearchTool passado como const Billable&
 
     cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;

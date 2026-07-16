@@ -1,5 +1,7 @@
-// Ferramenta concreta de busca na web. Sobrescreve todos os métodos puros
-// e complementa describe() chamando a versão da base (Tool::describe()).
+// Ferramenta concreta de busca na web. Heranca multipla: implementa tanto
+// a interface Tool (ferramenta) quanto Billable (faturacao).
+// Sobrescreve todos os metodos puros e complementa describe() chamando a
+// versao da base (Tool::describe()).
 
 #ifndef WEB_SEARCH_TOOL_HPP
 #define WEB_SEARCH_TOOL_HPP
@@ -8,8 +10,9 @@
 #include <string>
 
 #include "tool.hpp"
+#include "billable.hpp"
 
-class WebSearchTool : public Tool {
+class WebSearchTool : public Tool, public Billable {
 private:
     int calls_ = 0;  // quantidade de buscas realizadas
 
@@ -33,6 +36,11 @@ public:
 
     // Override do método puro — custo por busca
     double cost_per_call() const override { return 0.002; }
+
+    // Override da interface Billable — custo total das buscas realizadas
+    double billed_cost() const override {
+        return calls_ * cost_per_call();
+    }
 
     // Override do método não-puro chamando a versão da base primeiro (Q1-B)
     std::string describe() const override {
