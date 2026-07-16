@@ -35,14 +35,32 @@ classDiagram
     }
 
     class Tool {
+        <<abstract>>
         -string name_
         -string description_
         -bool enabled_
+        +execute(string)* string
+        +cost_per_call()* double
+        +describe() string
         +get_name() string
         +get_description() string
         +is_enabled() bool
         +toggle() void
+        +~Tool() virtual
+    }
+
+    class WebSearchTool {
+        -int calls_
         +execute(string) string
+        +cost_per_call() double
+        +describe() string
+        +get_calls() int
+    }
+
+    class CalculatorTool {
+        <<final>>
+        +execute(string) string
+        +cost_per_call() double
     }
 
     class Message {
@@ -86,6 +104,8 @@ classDiagram
     AiAssistant "1" *-- "0..*" Session : gerencia
     Session "1" *-- "0..*" Message : contém
     Session "1" o-- "1" User : pertence a
+    Tool <|-- WebSearchTool : herda
+    Tool <|-- CalculatorTool : herda
 ```
 
 ## Composição e Agregação (Questão 3)
@@ -113,6 +133,14 @@ classDiagram
 - **Session ◇── User**: agregação — a `Session` referencia (`User*`) um usuário que existe
   independentemente. O destrutor da sessão **não** deleta o usuário, pois este pode
   participar de outras sessões ou continuar existindo após o encerramento.
+
+## Hierarquia de Herança (TP2 — Questão 1)
+
+- **`Tool`** é uma classe **abstrata** que define o contrato para qualquer ferramenta: `execute()` e `cost_per_call()` são métodos **puros** (virtuais sem implementação), enquanto `describe()` é **virtual não-puro** e oferece uma implementação padrão que derivadas podem estender. O **destrutor é virtual**, permitindo que derivadas executem suas lógicas de limpeza antes do destrutor da base.
+
+- **`WebSearchTool`** é uma subclasse concreta que sobrescreve todos os métodos puros e, no método `describe()`, chama explicitamente `Tool::describe()` para reutilizar a descrição base antes de complementá-la com informações de estado (número de buscas realizadas).
+
+- **`CalculatorTool`** é uma subclasse concreta marcada com a palavra-chave `final` (classe folha), impedindo futuras especializações. Implementa os contratos abstratos sem estender `describe()`, usando apenas a descrição padrão da base.
 
 ## Smart Pointers (Questão 4)
 

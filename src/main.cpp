@@ -1,5 +1,5 @@
 // Ponto de entrada do sistema de serviço de LLM.
-// Demonstra composição e agregação entre as classes do domínio.
+// Demonstra composição, agregação, herança e polimorfismo entre as classes do domínio.
 
 #include <iostream>
 #include <memory>
@@ -8,6 +8,8 @@
 #include "user.hpp"
 #include "model.hpp"
 #include "tool.hpp"
+#include "web_search_tool.hpp"
+#include "calculator_tool.hpp"
 #include "message.hpp"
 #include "session.hpp"
 #include "ai_assistant.hpp"
@@ -19,8 +21,8 @@ int main() {
     // Instanciando objetos independentes que serão usados nas demonstrações
     User user1("Eduardo", "eduardo@email.com");
     auto gpt = std::make_shared<Model>("GPT-4o", 8192, 0.00003);
-    auto search = std::make_shared<Tool>("web_search", "Busca informacoes na internet");
-    auto calculator = std::make_shared<Tool>("calculator", "Realiza calculos matematicos");
+    auto search = std::make_shared<WebSearchTool>();
+    auto calculator = std::make_shared<CalculatorTool>();
 
     // ========================================================================
     // PARTE 1: Demonstrações de Métodos com Lógica
@@ -75,6 +77,15 @@ int main() {
     cout << "- Usuario: " << user1.display_info() << " (Sobreviveu)" << endl;
     cout << "- Modelo: " << gpt->get_name() << " (Sobreviveu)" << endl;
     cout << "- Ferramenta: " << search->get_name() << " (Sobreviveu)" << endl;
+
+    // ========================================================================
+    // PARTE 4: Teste de Destrutor Virtual (Q1)
+    // ========================================================================
+    cout << "\n=== 4. TESTE DE DESTRUTOR VIRTUAL ===" << endl;
+    cout << "Criando WebSearchTool armazenado em ponteiro Tool* e deletando:" << endl;
+    Tool* raw_tool = new WebSearchTool();
+    delete raw_tool;  // cadeia esperada: ~WebSearchTool (derivada) -> ~Tool (base)
+    cout << "(derivada destruida ANTES da base -> destrutor virtual correto)" << endl;
 
     cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;

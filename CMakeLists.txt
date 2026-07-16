@@ -8,3 +8,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB SOURCES "src/*.cpp")
 
 add_executable(code_cluster ${SOURCES})
+
+target_compile_options(code_cluster PRIVATE -Wall -Wextra)
