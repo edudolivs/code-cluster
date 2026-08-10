@@ -207,3 +207,27 @@ classDiagram
   intercaladas. Depois (ranges): a intenção — filtrar, depois projetar —
   fica explícita na composição dos adaptadores, sem vetor intermediário
   para o resultado filtrado.
+
+## STL e Concorrência (TP3 — Questão 3)
+
+- **Containers**: `std::map<string, shared_ptr<Tool>>` (`index_tools_by_name`,
+  em `tool_utils.hpp`) indexa ferramentas por nome — escolhido por manter
+  ordenação alfabética útil para exibição determinística. `std::unordered_set
+  <string>` (`Session::distinct_roles`) coleta os papéis distintos das
+  mensagens de uma sessão — escolhido pelo acesso/inserção O(1) e por a
+  ordem não importar, só a unicidade.
+- **Algoritmos**: `find_if` (busca por nome), `sort` (ordena por custo, com
+  comparador lambda), `count_if` (conta acima de um limiar, com lambda que
+  **captura** o limiar) e `accumulate` (soma o custo total) — todos em
+  `tool_utils.hpp`, evitando laços manuais equivalentes.
+- **Concorrência**: `estimate_batches_parallel` (`concurrent_billing.hpp`)
+  dispara um `std::async` por lote de tokens. É seguro paralelizar porque
+  `Model::estimate_cost` é `const` e cada lote não depende dos demais — o
+  único estado compartilhado é a trilha de auditoria (`audit_trail`),
+  protegida por `std::mutex`/`std::lock_guard`; os resultados são coletados
+  via `future::get()`.
+- **ThreadSanitizer**: `clang++ -std=c++20 -pthread -fsanitize=thread -Isrc
+  src/main.cpp -o tsan_app && ./tsan_app` roda limpo, sem nenhuma linha
+  `WARNING: ThreadSanitizer` — confirma que o único estado mutável
+  compartilhado entre as threads (`audit_trail`) está corretamente
+  protegido pelo mutex.

@@ -17,6 +17,7 @@
 #include "session.hpp"
 #include "ai_assistant.hpp"
 #include "catalog.hpp"
+#include "concurrent_billing.hpp"
 #include "exceptions.hpp"
 
 using std::cout;
@@ -221,6 +222,50 @@ int main() {
             cout << "  Erro: " << value << endl;
         }
     }, outcome_err);
+
+    // ========================================================================
+    // PARTE 9: STL e Concorrencia (TP3-Q3)
+    // ========================================================================
+    cout << "\n=== 9. STL E CONCORRENCIA (TP3 - Questao 3) ===" << endl;
+
+    std::vector<std::shared_ptr<Tool>> demo_tools{search, calculator};
+
+    // (A) containers apropriados: std::map (indice por nome, ordenado)
+    auto tools_by_name = index_tools_by_name(demo_tools);
+    cout << "\n[std::map<string, shared_ptr<Tool>>] indice por nome:" << endl;
+    for (const auto& [tool_name, tool] : tools_by_name) {
+        cout << "  " << tool_name << " -> $" << tool->cost_per_call() << "/chamada" << endl;
+    }
+
+    // (A) segundo container: std::unordered_set (papeis distintos da sessao)
+    auto roles = main_session.distinct_roles();
+    cout << "[std::unordered_set<string>] papeis distintos na sessao: " << roles.size() << endl;
+
+    // (B) algoritmos + lambda com captura
+    sort_tools_by_cost(demo_tools);
+    cout << "\n[std::sort] ferramentas ordenadas por custo:" << endl;
+    for (const auto& tool : demo_tools) {
+        cout << "  " << tool->get_name() << ": $" << tool->cost_per_call() << endl;
+    }
+    double cost_threshold = 0.001;
+    auto above_threshold = count_tools_above_cost(demo_tools, cost_threshold);
+    cout << "[std::count_if, lambda com captura de threshold=$" << cost_threshold << "] "
+         << above_threshold << " ferramenta(s) acima do limite" << endl;
+    cout << "[std::accumulate] custo total por chamada: $" << total_cost_per_call(demo_tools) << endl;
+    const Tool* found_by_name = find_tool_by_name(demo_tools, "calculator");
+    cout << "[std::find_if] busca por 'calculator': "
+         << (found_by_name != nullptr ? "encontrada" : "nao encontrada") << endl;
+
+    // (C)(D) paralelizacao de operacao independente com std::async, estado
+    // compartilhado (audit_trail) protegido por std::mutex
+    std::vector<int> token_batches{1000, 2500, 500, 4000};
+    std::vector<CostEstimate> audit_trail;
+    auto parallel_estimates = estimate_batches_parallel(*gpt, token_batches, audit_trail);
+    double parallel_total = std::accumulate(parallel_estimates.begin(), parallel_estimates.end(), 0.0,
+        [](double acc, const CostEstimate& estimate) { return acc + estimate.cost; });
+    cout << "\n[std::async + std::mutex] " << parallel_estimates.size()
+         << " lote(s) estimados em paralelo; trilha de auditoria com "
+         << audit_trail.size() << " entrada(s); custo total $" << parallel_total << endl;
 
     cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;

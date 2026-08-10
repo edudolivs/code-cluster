@@ -10,6 +10,10 @@ file(GLOB SOURCES "src/*.cpp")
 add_executable(code_cluster ${SOURCES})
 target_compile_options(code_cluster PRIVATE -Wall -Wextra)
 
+# Concorrencia (TP3 - Questao 3): std::thread/std::async exigem linkar pthread
+find_package(Threads REQUIRED)
+target_link_libraries(code_cluster PRIVATE Threads::Threads)
+
 # ---- Testes com Catch2 (TP2 — Questão 4) ----
 include(FetchContent)
 FetchContent_Declare(

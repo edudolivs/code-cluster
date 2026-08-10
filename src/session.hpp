@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "crtp_mixins.hpp"
@@ -56,6 +57,18 @@ public:
 
     // Requisito do mixin TextualClonable — reaproveita o resumo já existente
     std::string to_text() const { return summarize(); }
+
+    // Retorna os papéis (roles) distintos presentes nas mensagens da sessão.
+    // std::unordered_set é apropriado aqui pelo acesso/insercao O(1) e por
+    // a ordem dos papéis ser irrelevante — só a unicidade importa
+    // (TP3-Q3-A, container 2, diferente do std::map já usado em tool_utils).
+    std::unordered_set<std::string> distinct_roles() const {
+        std::unordered_set<std::string> roles;
+        for (const auto& message : messages_) {
+            roles.insert(message.get_role());
+        }
+        return roles;
+    }
 };
 
 #endif // SESSION_HPP
