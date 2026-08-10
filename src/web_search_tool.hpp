@@ -20,6 +20,11 @@ public:
     WebSearchTool()
         : Tool("web_search", "Busca informacoes na internet") {}
 
+    // Reconstroi a ferramenta com um numero de chamadas ja registrado —
+    // usado por from_json (TP3-Q4) para restaurar o estado fielmente.
+    explicit WebSearchTool(int calls)
+        : Tool("web_search", "Busca informacoes na internet"), calls_(calls) {}
+
     // Destrutor com efeito observável — executa ANTES do destrutor da base
     ~WebSearchTool() override {
         std::cout << "  ~WebSearchTool() destruida (derivada)" << std::endl;
@@ -49,6 +54,14 @@ public:
 
     // Getter const
     int get_calls() const { return calls_; }
+
+    // Override de equals() incluindo o campo proprio calls_ (TP3-Q4)
+    bool equals(const Tool& other) const override {
+        const auto* typed_other = dynamic_cast<const WebSearchTool*>(&other);
+        return typed_other != nullptr
+            && Tool::equals(other)
+            && calls_ == typed_other->calls_;
+    }
 };
 
 #endif // WEB_SEARCH_TOOL_HPP

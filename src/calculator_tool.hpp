@@ -29,6 +29,12 @@ public:
 
     // Override do método puro — custo por calculo
     double cost_per_call() const override { return 0.0005; }
+
+    // Override de equals() — CalculatorTool nao tem estado proprio, entao
+    // apenas confirma o tipo e delega para a comparacao da base (TP3-Q4)
+    bool equals(const Tool& other) const override {
+        return dynamic_cast<const CalculatorTool*>(&other) != nullptr && Tool::equals(other);
+    }
 };
 
 #endif // CALCULATOR_TOOL_HPP

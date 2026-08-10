@@ -231,3 +231,36 @@ classDiagram
   `WARNING: ThreadSanitizer` — confirma que o único estado mutável
   compartilhado entre as threads (`audit_trail`) está corretamente
   protegido pelo mutex.
+
+## Serialização JSON (TP3 — Questão 4)
+
+- **`to_json`/`from_json` não-intrusivos** (`json_serialization.hpp`) para
+  `Model` e `AssistantSnapshot`, via nlohmann/json (`FetchContent`, tag
+  `v3.11.3`). O campo `"version"` acompanha todo snapshot; a hierarquia
+  polimórfica `Tool` (do TP2) ganha um campo `"type"`
+  (`"web_search_tool"`/`"calculator_tool"`) usado por uma fábrica
+  (`tool_from_json`) para recriar o tipo concreto correto na
+  desserialização — a serialização genérica do nlohmann não dá conta disso
+  sozinha porque `Tool` é abstrata.
+- `AssistantSnapshot` (`assistant_snapshot.hpp`) é o DTO persistido:
+  `assistant_name` + `Model` + `vector<shared_ptr<Tool>>`, com
+  `operator==` estrutural usado para validar o round-trip nos testes.
+
+## SOLID (TP3 — Questão 4)
+
+- **SRP**: `AssistantSnapshot` é responsável só por representar o estado
+  persistível; `AiAssistant` continua sem saber nada sobre JSON ou
+  arquivos. `PersistenceService` cuida só de orquestrar a persistência.
+- **OCP**: `Tool::equals()` é um ponto de extensão — novas ferramentas
+  sobrescrevem para comparar seus próprios campos sem alterar `Tool`. Limite
+  honesto: `tool_from_json` ainda é um `if/else` fechado sobre o campo
+  `"type"` (nlohmann não oferece fábrica polimórfica automática); adicionar
+  uma nova `Tool` exige tocar essa função.
+- **LSP**: `WebSearchTool` e `CalculatorTool` são sempre substituíveis por
+  `Tool*`/`Tool&`, como já demonstrado no polimorfismo dinâmico do TP2.
+- **ISP**: `Billable` é uma interface mínima e independente — quem
+  implementa `Tool` não é obrigado a implementar `Billable`, e vice-versa.
+- **DIP**: `PersistenceService` depende só da abstração
+  `SnapshotRepository`, recebida por injeção no construtor. `JsonFileRepository`
+  (produção) e `MemoryRepository` (teste, sem tocar disco) são
+  implementações intercambiáveis dessa abstração.

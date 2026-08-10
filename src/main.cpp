@@ -16,9 +16,13 @@
 #include "message.hpp"
 #include "session.hpp"
 #include "ai_assistant.hpp"
+#include "assistant_snapshot.hpp"
 #include "catalog.hpp"
 #include "concurrent_billing.hpp"
 #include "exceptions.hpp"
+#include "json_file_repository.hpp"
+#include "memory_repository.hpp"
+#include "persistence_service.hpp"
 
 using std::cout;
 using std::endl;
@@ -266,6 +270,40 @@ int main() {
     cout << "\n[std::async + std::mutex] " << parallel_estimates.size()
          << " lote(s) estimados em paralelo; trilha de auditoria com "
          << audit_trail.size() << " entrada(s); custo total $" << parallel_total << endl;
+
+    // ========================================================================
+    // PARTE 10: Serializacao JSON e DIP (TP3-Q4)
+    // ========================================================================
+    cout << "\n=== 10. SERIALIZACAO JSON E SOLID (TP3 - Questao 4) ===" << endl;
+
+    JsonFileRepository json_repository("assistant_snapshot.json");
+    PersistenceService persistence(json_repository);
+
+    persistence.save(main_assistant);
+    cout << "\n[PersistenceService::save] estado salvo em assistant_snapshot.json" << endl;
+
+    AssistantSnapshot restored = persistence.load();
+    cout << "[PersistenceService::load] assistente restaurado: " << restored.assistant_name
+         << " | modelo: " << restored.model.get_name()
+         << " | ferramentas: " << restored.tools.size() << endl;
+
+    AssistantSnapshot original{
+        main_assistant.get_name(),
+        *main_assistant.get_model(),
+        main_assistant.get_tools()
+    };
+    cout << "[round-trip] snapshot original == snapshot restaurado: "
+         << (original == restored ? "sim" : "nao") << endl;
+
+    // (D) DIP: mesma logica (PersistenceService) com a implementacao de
+    // teste (MemoryRepository), sem tocar disco
+    MemoryRepository memory_repository;
+    PersistenceService memory_persistence(memory_repository);
+    memory_persistence.save(main_assistant);
+    AssistantSnapshot restored_from_memory = memory_persistence.load();
+    cout << "[DIP: MemoryRepository, sem I/O] assistente restaurado: "
+         << restored_from_memory.assistant_name
+         << " | igual ao original: " << (original == restored_from_memory ? "sim" : "nao") << endl;
 
     cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;

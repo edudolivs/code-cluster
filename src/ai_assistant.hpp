@@ -50,8 +50,10 @@ public:
         std::cout << "~AiAssistant(\"" << name_ << "\") destruido" << std::endl;
     }
 
-    // Getter const
+    // Getters const
     std::string get_name() const { return name_; }
+    std::shared_ptr<Model> get_model() const { return model_; }
+    const std::vector<std::shared_ptr<Tool>>& get_tools() const { return tools_; }
 
     // Define o modelo de linguagem a ser utilizado
     void set_model(std::shared_ptr<Model> model) {

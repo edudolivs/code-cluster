@@ -14,8 +14,18 @@ target_compile_options(code_cluster PRIVATE -Wall -Wextra)
 find_package(Threads REQUIRED)
 target_link_libraries(code_cluster PRIVATE Threads::Threads)
 
-# ---- Testes com Catch2 (TP2 — Questão 4) ----
 include(FetchContent)
+
+# ---- Serializacao JSON (TP3 - Questao 4) ----
+FetchContent_Declare(
+    nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json.git
+    GIT_TAG        v3.11.3
+)
+FetchContent_MakeAvailable(nlohmann_json)
+target_link_libraries(code_cluster PRIVATE nlohmann_json::nlohmann_json)
+
+# ---- Testes com Catch2 (TP2 — Questão 4) ----
 FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git

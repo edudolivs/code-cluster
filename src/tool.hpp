@@ -49,6 +49,16 @@ public:
 
     // Alterna o estado habilitado/desabilitado da ferramenta
     void toggle() { enabled_ = !enabled_; }
+
+    // Igualdade estrutural, usada para validar round-trip de serializacao
+    // (TP3-Q4). Ponto de extensao OCP: a implementacao padrao compara os
+    // campos da base; derivadas com estado proprio (ex.: WebSearchTool)
+    // sobrescrevem para incluir seus campos, sem alterar Tool.
+    virtual bool equals(const Tool& other) const {
+        return name_ == other.name_
+            && description_ == other.description_
+            && enabled_ == other.enabled_;
+    }
 };
 
 #endif // TOOL_HPP
