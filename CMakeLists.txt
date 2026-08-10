@@ -4,8 +4,10 @@ project(code_cluster LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Coleta todos os .cpp dentro de src/
+# Coleta todos os .cpp dentro de src/, exceto gui_main.cpp (pertence ao
+# alvo separado 'gui' da Questao 6 — ver bloco Qt6 no final deste arquivo)
 file(GLOB SOURCES "src/*.cpp")
+list(FILTER SOURCES EXCLUDE REGEX "gui_main\\.cpp$")
 
 add_executable(code_cluster ${SOURCES})
 target_compile_options(code_cluster PRIVATE -Wall -Wextra)
@@ -48,3 +50,18 @@ include(CTest)
 include(Catch)
 catch_discover_tests(testes)
 catch_discover_tests(testes_tp3)
+
+# ---- Interface grafica com Qt (TP3 - Questao 6, extra) ----
+# Guardado por Qt6_FOUND: o build de code_cluster/testes/testes_tp3 nunca
+# quebra em uma maquina sem Qt6 instalado (o alvo 'gui' so existe se achar).
+find_package(Qt6 QUIET COMPONENTS Widgets)
+if(Qt6_FOUND)
+    set(CMAKE_AUTOMOC ON)
+    qt_standard_project_setup()
+    qt_add_executable(gui src/gui_main.cpp src/main_window.hpp)
+    target_include_directories(gui PRIVATE src)
+    target_link_libraries(gui PRIVATE Qt6::Widgets nlohmann_json::nlohmann_json)
+    target_compile_options(gui PRIVATE -Wall -Wextra)
+else()
+    message(STATUS "Qt6 nao encontrado — alvo 'gui' nao sera criado (brew install qt)")
+endif()

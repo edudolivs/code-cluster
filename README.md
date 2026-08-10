@@ -264,3 +264,32 @@ classDiagram
   `SnapshotRepository`, recebida por injeção no construtor. `JsonFileRepository`
   (produção) e `MemoryRepository` (teste, sem tocar disco) são
   implementações intercambiáveis dessa abstração.
+
+## Qt (TP3 — Questão 6, extra)
+
+- **Build**: requer Qt6 instalado (`brew install qt` no macOS) e o prefixo
+  informado ao CMake:
+  ```
+  cmake -B build -DCMAKE_PREFIX_PATH="$(brew --prefix qt)"
+  cmake --build build --target gui
+  ./build/gui
+  ```
+  O bloco Qt no `CMakeLists.txt` é guardado por `find_package(Qt6 QUIET
+  COMPONENTS Widgets)` — se o Qt6 não for encontrado, o alvo `gui`
+  simplesmente não é criado e o restante do build (`code_cluster`,
+  `testes`, `testes_tp3`) continua funcionando normalmente.
+- **`MainWindow`** (`main_window.hpp`) é uma camada fina: cada slot só
+  chama métodos já existentes de `AiAssistant`/`PersistenceService`
+  (`add_tool`, `remove_tool`, `run_tool`, `PersistenceService::save/load`).
+  Nenhuma regra de negócio vive na janela — a mesma lógica continua
+  testável sem GUI, como demonstrado em `tests/test_tp3.cpp`.
+  Operações expostas: listar ferramentas, adicionar (`WebSearchTool`/
+  `CalculatorTool`), remover a selecionada, executar a selecionada, e
+  Salvar/Carregar (integrados com a serialização JSON da Questão 4).
+- **Screenshot**: pendente de captura manual — a GUI foi validada
+  automaticamente (inicialização sem erros com
+  `QT_QPA_PLATFORM=offscreen`), mas a captura de tela em si depende de
+  permissão de gravação de tela do macOS, que não está disponível neste
+  ambiente de execução. Para gerar o screenshot: rodar `./build/gui`,
+  interagir com a janela e salvar a imagem em
+  `docs/screenshots/qt_gui.png`.

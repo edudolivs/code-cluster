@@ -65,6 +65,18 @@ public:
         tools_.push_back(tool);
     }
 
+    // Remove a primeira ferramenta com o nome informado. Retorna true se
+    // alguma ferramenta foi removida (TP3-Q6-A: operacao exposta pela GUI).
+    bool remove_tool(const std::string& name) {
+        for (auto it = tools_.begin(); it != tools_.end(); ++it) {
+            if ((*it)->get_name() == name) {
+                tools_.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Cria uma nova sessão para o usuário e a armazena internamente.
     // Retorna referência observadora — o assistente permanece dono (unique_ptr).
     Session& create_session(User& user) {
