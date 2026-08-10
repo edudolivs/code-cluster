@@ -9,14 +9,14 @@
 
 #include "tool.hpp"
 
-class CalculatorTool final : public Tool {
+class calculator_tool final : public tool {
 public:
-    CalculatorTool()
-        : Tool("calculator", "Realiza calculos matematicos") {}
+    calculator_tool()
+        : tool("calculator", "Realiza calculos matematicos") {}
 
     // Destrutor com efeito observável — executa ANTES do destrutor da base
-    ~CalculatorTool() override {
-        std::cout << "  ~CalculatorTool() destruida (derivada)" << std::endl;
+    ~calculator_tool() override {
+        std::cout << "  ~calculator_tool() destruida (derivada)" << std::endl;
     }
 
     // Override do método puro — simula a avaliação da expressão
@@ -30,10 +30,10 @@ public:
     // Override do método puro — custo por calculo
     double cost_per_call() const override { return 0.0005; }
 
-    // Override de equals() — CalculatorTool nao tem estado proprio, entao
+    // Override de equals() — calculator_tool nao tem estado proprio, entao
     // apenas confirma o tipo e delega para a comparacao da base (TP3-Q4)
-    bool equals(const Tool& other) const override {
-        return dynamic_cast<const CalculatorTool*>(&other) != nullptr && Tool::equals(other);
+    bool equals(const tool& other) const override {
+        return dynamic_cast<const calculator_tool*>(&other) != nullptr && tool::equals(other);
     }
 };
 

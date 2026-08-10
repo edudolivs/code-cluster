@@ -1,4 +1,4 @@
-// Abstração de infraestrutura para persistência de AssistantSnapshot (DIP,
+// Abstração de infraestrutura para persistência de assistant_snapshot (DIP,
 // TP3-Q4-C). Classes de alto nível dependem desta interface, nunca de uma
 // implementação concreta.
 
@@ -7,11 +7,11 @@
 
 #include "assistant_snapshot.hpp"
 
-class SnapshotRepository {
+class snapshot_repository {
 public:
-    virtual void save(const AssistantSnapshot& snapshot) = 0;
-    virtual AssistantSnapshot load() = 0;
-    virtual ~SnapshotRepository() = default;
+    virtual void save(const assistant_snapshot& snapshot) = 0;
+    virtual assistant_snapshot load() = 0;
+    virtual ~snapshot_repository() = default;
 };
 
 #endif // SNAPSHOT_REPOSITORY_HPP

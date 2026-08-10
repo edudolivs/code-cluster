@@ -8,7 +8,7 @@
 #include <iostream>
 #include <string>
 
-class Tool {
+class tool {
 private:
     std::string name_;         // nome da ferramenta
     std::string description_;  // descrição da ferramenta
@@ -22,12 +22,12 @@ protected:
 
 public:
     // Construtor com lista de inicialização
-    Tool(const std::string& name, const std::string& description, bool enabled = true)
+    tool(const std::string& name, const std::string& description, bool enabled = true)
         : name_(name), description_(description), enabled_(enabled) {}
 
     // Destrutor virtual obrigatório — imprime para demonstrar a cadeia de destruição
-    virtual ~Tool() {
-        std::cout << "  ~Tool(\"" << name_ << "\") destruida (base)" << std::endl;
+    virtual ~tool() {
+        std::cout << "  ~tool(\"" << name_ << "\") destruida (base)" << std::endl;
     }
 
     // Método virtual puro — cada ferramenta executa de forma própria
@@ -52,9 +52,9 @@ public:
 
     // Igualdade estrutural, usada para validar round-trip de serializacao
     // (TP3-Q4). Ponto de extensao OCP: a implementacao padrao compara os
-    // campos da base; derivadas com estado proprio (ex.: WebSearchTool)
-    // sobrescrevem para incluir seus campos, sem alterar Tool.
-    virtual bool equals(const Tool& other) const {
+    // campos da base; derivadas com estado proprio (ex.: web_search_tool)
+    // sobrescrevem para incluir seus campos, sem alterar tool.
+    virtual bool equals(const tool& other) const {
         return name_ == other.name_
             && description_ == other.description_
             && enabled_ == other.enabled_;

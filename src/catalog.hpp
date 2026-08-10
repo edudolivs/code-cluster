@@ -20,7 +20,7 @@ concept nameable = requires(const T& value) {
 // Não é um simples apelido para std::vector — adiciona a semântica de
 // "registro pesquisável por nome" sobre qualquer tipo do domínio.
 template <nameable T>
-class Catalog {
+class catalog {
 private:
     std::vector<T> items_;  // itens armazenados, na ordem de inserção
 

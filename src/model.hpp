@@ -1,5 +1,5 @@
 // Classe que representa um modelo de linguagem (LLM).
-// Implementa a interface Billable: armazena nome, limite de tokens,
+// Implementa a interface billable: armazena nome, limite de tokens,
 // custo por token e tokens usados. Fornece metodos para estimar custo
 // e registrar uso de tokens.
 
@@ -10,7 +10,7 @@
 
 #include "billable.hpp"
 
-class Model : public Billable {
+class model : public billable {
 private:
     std::string name_;       // nome do modelo
     int max_tokens_;         // limite máximo de tokens
@@ -21,10 +21,10 @@ public:
     // Construtor padrão — necessário para o padrão to_json/from_json do
     // nlohmann::json, que constrói um valor vazio antes de populá-lo
     // (TP3-Q4).
-    Model() : name_(""), max_tokens_(0), cost_per_token_(0.0) {}
+    model() : name_(""), max_tokens_(0), cost_per_token_(0.0) {}
 
     // Construtor com lista de inicialização
-    Model(const std::string& name, int max_tokens, double cost_per_token)
+    model(const std::string& name, int max_tokens, double cost_per_token)
         : name_(name), max_tokens_(max_tokens), cost_per_token_(cost_per_token) {}
 
     // Getters const
@@ -53,14 +53,14 @@ public:
         }
     }
 
-    // Override da interface Billable — custo total dos tokens consumidos
+    // Override da interface billable — custo total dos tokens consumidos
     double billed_cost() const override {
         return tokens_used_ * cost_per_token_;
     }
 
     // Igualdade estrutural — usada para validar round-trip de serializacao
     // (TP3-Q4) sem precisar reserializar para comparar.
-    bool operator==(const Model& other) const {
+    bool operator==(const model& other) const {
         return name_ == other.name_
             && max_tokens_ == other.max_tokens_
             && cost_per_token_ == other.cost_per_token_

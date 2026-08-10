@@ -21,55 +21,55 @@
 #include "tool.hpp"
 #include "user.hpp"
 
-class AiAssistant {
+class ai_assistant {
 private:
     std::string name_;              // nome do assistente
-    std::shared_ptr<Model> model_;                  // modelo de linguagem utilizado (agregação via shared_ptr)
-    std::vector<std::shared_ptr<Tool>> tools_;      // ferramentas disponíveis (agregação via shared_ptr)
-    std::vector<std::unique_ptr<Session>> sessions_; // sessões gerenciadas (composição via unique_ptr)
-    Catalog<Model> available_models_;               // modelos cadastrados, pesquisáveis por nome
+    std::shared_ptr<model> model_;                  // modelo de linguagem utilizado (agregação via shared_ptr)
+    std::vector<std::shared_ptr<tool>> tools_;      // ferramentas disponíveis (agregação via shared_ptr)
+    std::vector<std::unique_ptr<session>> sessions_; // sessões gerenciadas (composição via unique_ptr)
+    catalog<model> available_models_;               // modelos cadastrados, pesquisáveis por nome
 
 public:
     // Resultado da execução de uma ferramenta: dados de sucesso ou mensagem de erro
-    struct ToolOutput {
+    struct tool_output {
         std::string tool_name;
         std::string content;
         double cost;
     };
-    using ExecutionOutcome = std::variant<ToolOutput, std::string>;
+    using execution_outcome = std::variant<tool_output, std::string>;
 
     // Construtor com lista de inicialização
-    AiAssistant(const std::string& name)
+    ai_assistant(const std::string& name)
         : name_(name), model_(nullptr), tools_(), sessions_() {
-        std::cout << "AiAssistant(\"" << name_ << "\") criado" << std::endl;
+        std::cout << "ai_assistant(\"" << name_ << "\") criado" << std::endl;
     }
 
     // Destrutor explícito — unique_ptr libera as sessões automaticamente (composição)
-    ~AiAssistant() {
-        sessions_.clear(); // unique_ptr destrói cada Session aqui
-        std::cout << "~AiAssistant(\"" << name_ << "\") destruido" << std::endl;
+    ~ai_assistant() {
+        sessions_.clear(); // unique_ptr destrói cada session aqui
+        std::cout << "~ai_assistant(\"" << name_ << "\") destruido" << std::endl;
     }
 
     // Getters const
     std::string get_name() const { return name_; }
-    std::shared_ptr<Model> get_model() const { return model_; }
-    const std::vector<std::shared_ptr<Tool>>& get_tools() const { return tools_; }
+    std::shared_ptr<model> get_model() const { return model_; }
+    const std::vector<std::shared_ptr<tool>>& get_tools() const { return tools_; }
 
     // Define o modelo de linguagem a ser utilizado
-    void set_model(std::shared_ptr<Model> model) {
-        model_ = model;
+    void set_model(std::shared_ptr<model> current_model) {
+        model_ = current_model;
     }
 
     // Adiciona uma ferramenta ao assistente
-    void add_tool(std::shared_ptr<Tool> tool) {
-        tools_.push_back(tool);
+    void add_tool(std::shared_ptr<tool> current_tool) {
+        tools_.push_back(current_tool);
     }
 
     // Remove a primeira ferramenta com o nome informado. Retorna true se
     // alguma ferramenta foi removida (TP3-Q6-A: operacao exposta pela GUI).
     bool remove_tool(const std::string& name) {
         for (auto it = tools_.begin(); it != tools_.end(); ++it) {
-            if ((*it)->get_name() == name) {
+            if ((*it)->get_name() == name) {  // primeira ocorrencia do nome
                 tools_.erase(it);
                 return true;
             }
@@ -79,11 +79,11 @@ public:
 
     // Cria uma nova sessão para o usuário e a armazena internamente.
     // Retorna referência observadora — o assistente permanece dono (unique_ptr).
-    Session& create_session(User& user) {
+    session& create_session(user& current_user) {
         int new_id = static_cast<int>(sessions_.size()) + 1;
-        auto session = std::make_unique<Session>(new_id, user);
-        Session& ref = *session;
-        sessions_.push_back(std::move(session));
+        auto new_session = std::make_unique<session>(new_id, current_user);
+        session& ref = *new_session;
+        sessions_.push_back(std::move(new_session));
         return ref;
     }
 
@@ -110,63 +110,64 @@ public:
     // Ver README ("Programação Genérica") para o contraste com list_tools().
     std::vector<std::string> affordable_tool_names(double max_cost) const {
         auto names = tools_
-            | std::views::filter([max_cost](const std::shared_ptr<Tool>& tool) {
-                  return tool->is_enabled() && tool->cost_per_call() <= max_cost;
+            | std::views::filter([max_cost](const std::shared_ptr<tool>& current_tool) {
+                  return current_tool->is_enabled() && current_tool->cost_per_call() <= max_cost;
               })
-            | std::views::transform([](const std::shared_ptr<Tool>& tool) {
-                  return tool->get_name();
+            | std::views::transform([](const std::shared_ptr<tool>& current_tool) {
+                  return current_tool->get_name();
               });
         return std::vector<std::string>(names.begin(), names.end());
     }
 
     // Cadastra um modelo no catálogo de modelos disponíveis para seleção
-    void register_available_model(const Model& model) {
-        available_models_.add(model);
+    void register_available_model(const model& current_model) {
+        available_models_.add(current_model);
     }
 
     // Busca um modelo disponível pelo nome — retorna nullopt se não achar,
     // em vez de lançar exceção ou devolver ponteiro nulo (TP3-Q2-B).
-    std::optional<Model> find_available_model(const std::string& name) const {
+    std::optional<model> find_available_model(const std::string& name) const {
         return available_models_.find_by_name(name);
     }
 
     // Seleciona o modelo ativo do assistente pelo nome. Lança
-    // ModelNotFoundError (derivada de LlmServiceError) se o modelo não
+    // model_not_found_error (derivada de llm_service_error) se o modelo não
     // estiver cadastrado no catálogo (TP3-Q2-A).
     void select_model(const std::string& name) {
         auto found = find_available_model(name);
         if (!found.has_value()) {
-            throw ModelNotFoundError(name);
+            throw model_not_found_error(name);
         }
-        model_ = std::make_shared<Model>(*found);
+        model_ = std::make_shared<model>(*found);
     }
 
     // Verifica se o custo total já faturado (modelo + ferramentas
-    // faturáveis) ultrapassa o limite informado. Lança BudgetExceededError
-    // (derivada de LlmServiceError) em caso de estouro (TP3-Q2-A).
+    // faturáveis) ultrapassa o limite informado. Lança budget_exceeded_error
+    // (derivada de llm_service_error) em caso de estouro (TP3-Q2-A).
     void enforce_budget(double limit) const {
         double spent = 0.0;
         if (model_ != nullptr) {
             spent += model_->billed_cost();
         }
-        for (const auto& tool : tools_) {
-            const auto* billable = dynamic_cast<const Billable*>(tool.get());
-            if (billable != nullptr) {
-                spent += billable->billed_cost();
+        for (const auto& current_tool : tools_) {
+            const auto* billable_ref = dynamic_cast<const billable*>(current_tool.get());
+            if (billable_ref != nullptr) {
+                spent += billable_ref->billed_cost();
             }
         }
         if (spent > limit) {
-            throw BudgetExceededError(spent, limit);
+            throw budget_exceeded_error(spent, limit);
         }
     }
 
     // Executa a ferramenta de nome 'name' com o input informado. Retorna um
-    // variant: ToolOutput em caso de sucesso, ou uma mensagem de erro em
+    // variant: tool_output em caso de sucesso, ou uma mensagem de erro em
     // std::string caso a ferramenta não exista (TP3-Q2-C).
-    ExecutionOutcome run_tool(const std::string& name, const std::string& input) const {
-        for (const auto& tool : tools_) {
-            if (tool->get_name() == name) {
-                return ToolOutput{tool->get_name(), tool->execute(input), tool->cost_per_call()};
+    execution_outcome run_tool(const std::string& name, const std::string& input) const {
+        for (const auto& current_tool : tools_) {
+            if (current_tool->get_name() == name) {
+                return tool_output{current_tool->get_name(), current_tool->execute(input),
+                                  current_tool->cost_per_call()};
             }
         }
         return std::string("ferramenta nao encontrada: " + name);

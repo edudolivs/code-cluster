@@ -14,37 +14,37 @@
 #include "message.hpp"
 #include "user.hpp"
 
-// Session usa CRTP (InstanceCounted/TextualClonable) — mesma técnica de
-// Message, sem custo de vtable, adequada porque Session não participa de
+// session usa CRTP (instance_counted/textual_clonable) — mesma técnica de
+// message, sem custo de vtable, adequada porque session não participa de
 // uma hierarquia polimórfica.
-class Session : public InstanceCounted<Session>, public TextualClonable<Session> {
+class session : public instance_counted<session>, public textual_clonable<session> {
 private:
     int id_;                        // identificador da sessão
-    std::vector<Message> messages_; // mensagens da sessão (composição)
-    User& user_;                    // usuário dono da sessão (agregação via referência)
+    std::vector<message> messages_; // mensagens da sessão (composição)
+    user& user_;                    // usuário dono da sessão (agregação via referência)
 
 public:
     // Construtor com lista de inicialização
-    Session(int id, User& user)
-        : id_(id), messages_(), user_(user) {
-        std::cout << "  Session(" << id_ << ") criada" << std::endl;
+    session(int id, user& current_user)
+        : id_(id), messages_(), user_(current_user) {
+        std::cout << "  session(" << id_ << ") criada" << std::endl;
     }
 
     // Destrutor explícito com efeito observável — imprime mensagem ao encerrar sessão
-    ~Session() {
-        std::cout << "  ~Session(" << id_ << ") destruida ("
+    ~session() {
+        std::cout << "  ~session(" << id_ << ") destruida ("
                   << messages_.size() << " mensagem(ns) descartada(s))" << std::endl;
     }
 
     // Getters const
     int get_id() const { return id_; }
-    const User& get_user() const { return user_; }
+    const user& get_user() const { return user_; }
     size_t get_message_count() const { return messages_.size(); }
 
     // Adiciona uma mensagem à sessão
-    void add_message(const Message& message) {
-        messages_.push_back(message);
-        std::cout << "    Message(\"" << message.get_role() << "\") adicionada" << std::endl;
+    void add_message(const message& new_message) {
+        messages_.push_back(new_message);
+        std::cout << "    message(\"" << new_message.get_role() << "\") adicionada" << std::endl;
     }
 
     // Gera um resumo da sessão contendo id, usuário e contagem de mensagens
@@ -55,7 +55,7 @@ public:
         return summary;
     }
 
-    // Requisito do mixin TextualClonable — reaproveita o resumo já existente
+    // Requisito do mixin textual_clonable — reaproveita o resumo já existente
     std::string to_text() const { return summarize(); }
 
     // Retorna os papéis (roles) distintos presentes nas mensagens da sessão.
@@ -64,8 +64,8 @@ public:
     // (TP3-Q3-A, container 2, diferente do std::map já usado em tool_utils).
     std::unordered_set<std::string> distinct_roles() const {
         std::unordered_set<std::string> roles;
-        for (const auto& message : messages_) {
-            roles.insert(message.get_role());
+        for (const auto& current_message : messages_) {
+            roles.insert(current_message.get_role());
         }
         return roles;
     }

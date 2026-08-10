@@ -6,14 +6,14 @@
 
 #include <string>
 
-class User {
+class user {
 private:
     std::string name_;    // nome do usuário
     std::string email_;   // e-mail do usuário
 
 public:
     // Construtor com lista de inicialização
-    User(const std::string& name, const std::string& email)
+    user(const std::string& name, const std::string& email)
         : name_(name), email_(email) {}
 
     // Getters const

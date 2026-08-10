@@ -1,5 +1,5 @@
-// Ponto de entrada da GUI Qt (TP3 - Questao 6). Monta o AiAssistant e o
-// PersistenceService reaproveitando exatamente a mesma logica de dominio
+// Ponto de entrada da GUI Qt (TP3 - Questao 6). Monta o ai_assistant e o
+// persistence_service reaproveitando exatamente a mesma logica de dominio
 // usada em main.cpp e nos testes — a janela e so uma camada fina por cima.
 
 #include <QApplication>
@@ -17,15 +17,15 @@
 int main(int argc, char** argv) {
     QApplication application(argc, argv);
 
-    AiAssistant assistant("Gemini Assistant (GUI)");
-    assistant.set_model(std::make_shared<Model>("GPT-4o", 8192, 0.00003));
-    assistant.add_tool(std::make_shared<WebSearchTool>());
-    assistant.add_tool(std::make_shared<CalculatorTool>());
+    ai_assistant assistant("Gemini Assistant (GUI)");
+    assistant.set_model(std::make_shared<model>("GPT-4o", 8192, 0.00003));
+    assistant.add_tool(std::make_shared<web_search_tool>());
+    assistant.add_tool(std::make_shared<calculator_tool>());
 
-    JsonFileRepository repository("assistant_snapshot.json");
-    PersistenceService persistence(repository);
+    json_file_repository repository("assistant_snapshot.json");
+    persistence_service persistence(repository);
 
-    MainWindow window(assistant, persistence);
+    main_window window(assistant, persistence);
     window.setWindowTitle("Code Cluster — Assistente de IA");
     window.resize(480, 360);
     window.show();

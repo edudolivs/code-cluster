@@ -6,17 +6,17 @@
 ## Descrição do Domínio
 
 Este projeto modela um sistema de serviço de Large Language Models (LLMs).
-O sistema modela um assistente de IA baseado em LLM. Um `AiAssistant` coordena
-pedidos do usuário utilizando um `Model` de linguagem e um conjunto de `Tool`s.
-Cada sessão de uso (`Session`) pertence a um `User` e armazena um histórico de
-`Message`s trocadas. As relações incluem composição (mensagens dentro de sessões,
+O sistema modela um assistente de IA baseado em LLM. Um `ai_assistant` coordena
+pedidos do usuário utilizando um `model` de linguagem e um conjunto de `tool`s.
+Cada sessão de uso (`session`) pertence a um `user` e armazena um histórico de
+`message`s trocadas. As relações incluem composição (mensagens dentro de sessões,
 ferramentas dentro do assistente) e agregação (modelo e usuário referenciados).
 
 ## Diagrama UML de Classes
 
 ```mermaid
 classDiagram
-    class User {
+    class user {
         -string name_
         -string email_
         +get_name() string
@@ -24,7 +24,7 @@ classDiagram
         +display_info() string
     }
 
-    class Model {
+    class model {
         -string name_
         -int max_tokens_
         -double cost_per_token_
@@ -37,7 +37,7 @@ classDiagram
         +billed_cost() double
     }
 
-    class Tool {
+    class tool {
         <<abstract>>
         -string name_
         -string description_
@@ -49,10 +49,10 @@ classDiagram
         +get_description() string
         +is_enabled() bool
         +toggle() void
-        +~Tool() virtual
+        +~tool() virtual
     }
 
-    class WebSearchTool {
+    class web_search_tool {
         -int calls_
         +execute(string) string
         +cost_per_call() double
@@ -61,18 +61,18 @@ classDiagram
         +billed_cost() double
     }
 
-    class CalculatorTool {
+    class calculator_tool {
         <<final>>
         +execute(string) string
         +cost_per_call() double
     }
 
-    class Billable {
+    class billable {
         <<interface>>
         +billed_cost() double*
     }
 
-    class Message {
+    class message {
         -string role_
         -string content_
         -string timestamp_
@@ -82,125 +82,203 @@ classDiagram
         +format() string
     }
 
-    class Session {
+    class session {
         -int id_
-        -vector~Message~ messages_
-        -User& user_
+        -vector~message~ messages_
+        -user& user_
         +get_id() int
-        +get_user() const User&
+        +get_user() const user&
         +get_message_count() size_t
-        +add_message(Message) void
+        +add_message(message) void
         +summarize() string
-        +~Session()
+        +~session()
     }
 
-    class AiAssistant {
+    class ai_assistant {
         -string name_
-        -shared_ptr~Model~ model_
-        -vector~shared_ptr~Tool~~ tools_
-        -vector~unique_ptr~Session~~ sessions_
+        -shared_ptr~model~ model_
+        -vector~shared_ptr~tool~~ tools_
+        -vector~unique_ptr~session~~ sessions_
         +get_name() string
-        +set_model(shared_ptr~Model~) void
-        +add_tool(shared_ptr~Tool~) void
-        +create_session(User&) Session&
+        +set_model(shared_ptr~model~) void
+        +add_tool(shared_ptr~tool~) void
+        +create_session(user&) session&
         +list_tools() string
         +status_report() string
-        +~AiAssistant()
+        +~ai_assistant()
     }
 
-    AiAssistant "1" o-- "1" Model : utiliza
-    AiAssistant "1" o-- "0..*" Tool : disponibiliza
-    AiAssistant "1" *-- "0..*" Session : gerencia
-    Session "1" *-- "0..*" Message : contém
-    Session "1" o-- "1" User : pertence a
-    Tool <|-- WebSearchTool : herda
-    Tool <|-- CalculatorTool : herda
-    Billable <|.. WebSearchTool : implementa
-    Billable <|.. Model : implementa
+    class catalog~T~ {
+        <<template>>
+        -vector~T~ items_
+        +add(T) void
+        +find_by_name(string) optional~T~
+        +all() vector~T~
+        +size() size_t
+    }
+
+    class instance_counted~Derived~ {
+        <<CRTP mixin>>
+        -static int count_
+        +alive() int
+    }
+
+    class textual_clonable~Derived~ {
+        <<CRTP mixin>>
+        +clone_as_text() string
+    }
+
+    class assistant_snapshot {
+        <<DTO>>
+        +string assistant_name
+        +model assistant_model
+        +vector tools
+        +operator==(assistant_snapshot) bool
+    }
+
+    class snapshot_repository {
+        <<interface>>
+        +save(assistant_snapshot) void*
+        +load() assistant_snapshot*
+    }
+
+    class json_file_repository {
+        -string path_
+        +save(assistant_snapshot) void
+        +load() assistant_snapshot
+    }
+
+    class memory_repository {
+        -optional~assistant_snapshot~ stored_
+        +save(assistant_snapshot) void
+        +load() assistant_snapshot
+    }
+
+    class persistence_service {
+        -snapshot_repository& repository_
+        +save(ai_assistant) void
+        +load() assistant_snapshot
+    }
+
+    class llm_service_error {
+        <<exception>>
+    }
+
+    class model_not_found_error {
+    }
+
+    class budget_exceeded_error {
+    }
+
+    ai_assistant "1" o-- "1" model : utiliza
+    ai_assistant "1" o-- "0..*" tool : disponibiliza
+    ai_assistant "1" *-- "0..*" session : gerencia
+    session "1" *-- "0..*" message : contém
+    session "1" o-- "1" user : pertence a
+    tool <|-- web_search_tool : herda
+    tool <|-- calculator_tool : herda
+    billable <|.. web_search_tool : implementa
+    billable <|.. model : implementa
+
+    ai_assistant "1" *-- "1" catalog : available_models_
+    instance_counted <|-- message : CRTP
+    instance_counted <|-- session : CRTP
+    textual_clonable <|-- message : CRTP
+    textual_clonable <|-- session : CRTP
+    persistence_service "1" o-- "1" snapshot_repository : injeta (DIP)
+    snapshot_repository <|.. json_file_repository : implementa
+    snapshot_repository <|.. memory_repository : implementa
+    persistence_service ..> assistant_snapshot : monta
+    assistant_snapshot "1" *-- "1" model : contém
+    assistant_snapshot "1" o-- "0..*" tool : referencia
+    llm_service_error <|-- model_not_found_error : herda
+    llm_service_error <|-- budget_exceeded_error : herda
+    ai_assistant ..> llm_service_error : lança
 ```
 
 ## Composição e Agregação (Questão 3)
 
 ### Relações de Composição (◆)
 
-- **AiAssistant ◆── Session**: composição — o `AiAssistant` cria as sessões internamente
-  (`create_session`) e as destrói no seu destrutor (`~AiAssistant`). Uma `Session` não
-  existe sem o `AiAssistant` que a criou; seu ciclo de vida é controlado inteiramente pelo dono.
+- **ai_assistant ◆── session**: composição — o `ai_assistant` cria as sessões internamente
+  (`create_session`) e as destrói no seu destrutor (`~ai_assistant`). Uma `session` não
+  existe sem o `ai_assistant` que a criou; seu ciclo de vida é controlado inteiramente pelo dono.
 
-- **Session ◆── Message**: composição — as mensagens são armazenadas por valor dentro do
-  `vector<Message>` da `Session`. Quando a `Session` é destruída, todas as suas mensagens
-  são automaticamente destruídas junto. Uma `Message` não existe fora da `Session` que a contém.
+- **session ◆── message**: composição — as mensagens são armazenadas por valor dentro do
+  `vector<message>` da `session`. Quando a `session` é destruída, todas as suas mensagens
+  são automaticamente destruídas junto. Uma `message` não existe fora da `session` que a contém.
 
 ### Relações de Agregação (◇)
 
-- **AiAssistant ◇── Model**: agregação — o `AiAssistant` apenas referencia (`Model*`) um
-  modelo que existe independentemente. O destrutor do assistente **não** deleta o modelo,
-  pois este pode continuar existindo após o assistente ser destruído.
+- **ai_assistant ◇── model**: agregação — o `ai_assistant` compartilha a posse do modelo
+  (`shared_ptr<model>`), que existe independentemente. O destrutor do assistente **não**
+  destrói o modelo enquanto outra entidade ainda o referenciar.
 
-- **AiAssistant ◇── Tool**: agregação — o `AiAssistant` mantém ponteiros (`vector<Tool*>`)
-  para ferramentas criadas externamente. O destrutor do assistente **não** deleta as
-  ferramentas, que continuam existindo de forma independente.
+- **ai_assistant ◇── tool**: agregação — o `ai_assistant` guarda
+  `vector<shared_ptr<tool>>` de ferramentas criadas externamente e reutilizáveis por
+  outros assistentes. O destrutor do assistente **não** destrói as ferramentas que
+  ainda tiverem outros donos.
 
-- **Session ◇── User**: agregação — a `Session` referencia (`User*`) um usuário que existe
-  independentemente. O destrutor da sessão **não** deleta o usuário, pois este pode
+- **session ◇── user**: agregação — a `session` referencia o usuário por `user&`, um
+  observador sem posse. O destrutor da sessão **não** deleta o usuário, pois este pode
   participar de outras sessões ou continuar existindo após o encerramento.
 
 ## Hierarquia de Herança (TP2 — Questão 1)
 
-- **`Tool`** é uma classe **abstrata** que define o contrato para qualquer ferramenta: `execute()` e `cost_per_call()` são métodos **puros** (virtuais sem implementação), enquanto `describe()` é **virtual não-puro** e oferece uma implementação padrão que derivadas podem estender. O **destrutor é virtual**, permitindo que derivadas executem suas lógicas de limpeza antes do destrutor da base.
+- **`tool`** é uma classe **abstrata** que define o contrato para qualquer ferramenta: `execute()` e `cost_per_call()` são métodos **puros** (virtuais sem implementação), enquanto `describe()` é **virtual não-puro** e oferece uma implementação padrão que derivadas podem estender. O **destrutor é virtual**, permitindo que derivadas executem suas lógicas de limpeza antes do destrutor da base.
 
-- **`WebSearchTool`** é uma subclasse concreta que sobrescreve todos os métodos puros e, no método `describe()`, chama explicitamente `Tool::describe()` para reutilizar a descrição base antes de complementá-la com informações de estado (número de buscas realizadas).
+- **`web_search_tool`** é uma subclasse concreta que sobrescreve todos os métodos puros e, no método `describe()`, chama explicitamente `tool::describe()` para reutilizar a descrição base antes de complementá-la com informações de estado (número de buscas realizadas).
 
-- **`CalculatorTool`** é uma subclasse concreta marcada com a palavra-chave `final` (classe folha), impedindo futuras especializações. Implementa os contratos abstratos sem estender `describe()`, usando apenas a descrição padrão da base.
+- **`calculator_tool`** é uma subclasse concreta marcada com a palavra-chave `final` (classe folha), impedindo futuras especializações. Implementa os contratos abstratos sem estender `describe()`, usando apenas a descrição padrão da base.
 
 ## Smart Pointers (Questão 4)
 
-- **`AiAssistant::sessions_`** → `vector<unique_ptr<Session>>`: composição — o assistente é dono exclusivo das sessões, então `unique_ptr` expressa posse única e elimina `delete` manual.
-- **`AiAssistant::model_`** → `shared_ptr<Model>`: agregação — o assistente compartilha a posse do modelo com outras possíveis entidades (recurso genuinamente compartilhado). O `shared_ptr` garante que o modelo não seja destruído enquanto o assistente ou outra entidade ainda o utilizar.
-- **`AiAssistant::tools_`** → `vector<shared_ptr<Tool>>`: agregação — o assistente compartilha a posse das ferramentas, que podem ser reutilizadas por outros assistentes. O `shared_ptr` gerencia essa posse compartilhada.
-- **`Session::user_`** → `User&` (referência): agregação — a sessão apenas observa o usuário sem possuí-lo; referência expressa observador sem posse e garante que o usuário sempre existe.
+- **`ai_assistant::sessions_`** → `vector<unique_ptr<session>>`: composição — o assistente é dono exclusivo das sessões, então `unique_ptr` expressa posse única e elimina `delete` manual.
+- **`ai_assistant::model_`** → `shared_ptr<model>`: agregação — o assistente compartilha a posse do modelo com outras possíveis entidades (recurso genuinamente compartilhado). O `shared_ptr` garante que o modelo não seja destruído enquanto o assistente ou outra entidade ainda o utilizar.
+- **`ai_assistant::tools_`** → `vector<shared_ptr<tool>>`: agregação — o assistente compartilha a posse das ferramentas, que podem ser reutilizadas por outros assistentes. O `shared_ptr` gerencia essa posse compartilhada.
+- **`session::user_`** → `user&` (referência): agregação — a sessão apenas observa o usuário sem possuí-lo; referência expressa observador sem posse e garante que o usuário sempre existe.
 
 ## Herança Avançada (TP2 — Questão 3)
 
-- **Interface pura `Billable`**: sem estado, apenas `billed_cost() = 0` e destrutor
+- **Interface pura `billable`**: sem estado, apenas `billed_cost() = 0` e destrutor
   virtual. Modela a *capacidade* de gerar custo, implementada tanto dentro da
-  hierarquia de `Tool` (`WebSearchTool`) quanto fora dela (`Model`).
-- **Herança múltipla segura**: `WebSearchTool : public Tool, public Billable` —
-  pública nos dois casos e sem diamante, pois `Billable` não carrega estado.
-- **`final` em `CalculatorTool`**: a calculadora é uma folha concreta e completa da
+  hierarquia de `tool` (`web_search_tool`) quanto fora dela (`model`).
+- **Herança múltipla segura**: `web_search_tool : public tool, public billable` —
+  pública nos dois casos e sem diamante, pois `billable` não carrega estado.
+- **`final` em `calculator_tool`**: a calculadora é uma folha concreta e completa da
   hierarquia — seu contrato (avaliar expressões com custo fixo) não admite
   especialização. Marcar a classe como `final` garante em tempo de compilação que
   ninguém herde dela para alterar esse comportamento (qualquer tentativa gera erro
   "cannot derive from final"), documenta a intenção de design e permite ao
-  compilador devirtualizar chamadas quando o tipo estático é `CalculatorTool`.
+  compilador devirtualizar chamadas quando o tipo estático é `calculator_tool`.
 
 ## Programação Genérica (TP3 — Questão 1)
 
-- **Template `Catalog<T>`** (`catalog.hpp`): abstrai a ideia de um *registro
+- **Template `catalog<T>`** (`catalog.hpp`): abstrai a ideia de um *registro
   pesquisável por nome* sobre qualquer tipo do domínio — não é um `vector`
   disfarçado, pois adiciona a operação `find_by_name()` (retornando
   `std::optional<T>`) que um `vector` não oferece. É instanciado com dois
-  tipos diferentes em `main()`: `Catalog<Model>` e `Catalog<User>`, ambos
+  tipos diferentes em `main()`: `catalog<model>` e `catalog<user>`, ambos
   aceitos por já exporem `get_name()`.
 
-- **CRTP em vez de herança virtual**: `Message` e `Session` ganham contagem
-  de instâncias (`InstanceCounted<Derived>`) e clonagem textual
-  (`TextualClonable<Derived>`) via CRTP (`crtp_mixins.hpp`). Diferente de
-  `Tool` — que precisa de despacho em tempo de execução porque o código
-  cliente não conhece o tipo concreto ao iterar `vector<unique_ptr<Tool>>` —
+- **CRTP em vez de herança virtual**: `message` e `session` ganham contagem
+  de instâncias (`instance_counted<Derived>`) e clonagem textual
+  (`textual_clonable<Derived>`) via CRTP (`crtp_mixins.hpp`). Diferente de
+  `tool` — que precisa de despacho em tempo de execução porque o código
+  cliente não conhece o tipo concreto ao iterar `vector<unique_ptr<tool>>` —
   aqui o tipo derivado é sempre conhecido em tempo de compilação
-  (`Message`/`Session` nunca são acessados por ponteiro/referência à base).
+  (`message`/`session` nunca são acessados por ponteiro/referência à base).
   Uma hierarquia virtual pagaria o custo de uma vtable e uma indireção por
   chamada sem necessidade; o CRTP resolve o `static_cast<const Derived&>`
   em tempo de compilação, sem vtable.
 
-- **Concept `nameable`**: restringe `Catalog<T>` a tipos com
-  `get_name() -> convertible_to<std::string>`. Instanciar `Catalog<int>`
+- **Concept `nameable`**: restringe `catalog<T>` a tipos com
+  `get_name() -> convertible_to<std::string>`. Instanciar `catalog<int>`
   produz um erro de compilação citando diretamente `nameable` (testado com
   `clang++ -std=c++20 -fsyntax-only`), em vez de uma cascata de erros de
   template sem relação clara com a causa.
 
-- **Pipeline de ranges**: `AiAssistant::affordable_tool_names(max_cost)`
+- **Pipeline de ranges**: `ai_assistant::affordable_tool_names(max_cost)`
   encadeia `views::filter` (ferramentas ativas dentro do orçamento) e
   `views::transform` (extrai o nome). Antes (laço tradicional, como em
   `list_tools()`): um `for` acumulando uma `std::string` com condicionais
@@ -208,12 +286,27 @@ classDiagram
   fica explícita na composição dos adaptadores, sem vetor intermediário
   para o resultado filtrado.
 
+## Tratamento de Erros (TP3 — Questão 2)
+
+- **Hierarquia própria** (`exceptions.hpp`): `llm_service_error` herda de
+  `std::runtime_error` e é a base de todo erro do domínio;
+  `model_not_found_error` (recurso ausente) e `budget_exceeded_error`
+  (validação de orçamento) são as duas derivadas específicas. Ambas são
+  lançadas em condições reais e capturadas **pela base** no `main()`.
+- **`std::optional`**: `ai_assistant::find_available_model` devolve
+  `std::nullopt` quando o modelo não está no catálogo, em vez de lançar ou
+  retornar ponteiro nulo. `select_model` é a operação que, aí sim, lança.
+- **`std::variant`**: `ai_assistant::run_tool` devolve
+  `execution_outcome = variant<tool_output, string>` — saída da ferramenta
+  em caso de sucesso, mensagem de erro caso a ferramenta não exista.
+  Tratado com `std::visit` no `main()` e em `main_window::execute_selected_tool`.
+
 ## STL e Concorrência (TP3 — Questão 3)
 
-- **Containers**: `std::map<string, shared_ptr<Tool>>` (`index_tools_by_name`,
+- **Containers**: `std::map<string, shared_ptr<tool>>` (`index_tools_by_name`,
   em `tool_utils.hpp`) indexa ferramentas por nome — escolhido por manter
   ordenação alfabética útil para exibição determinística. `std::unordered_set
-  <string>` (`Session::distinct_roles`) coleta os papéis distintos das
+  <string>` (`session::distinct_roles`) coleta os papéis distintos das
   mensagens de uma sessão — escolhido pelo acesso/inserção O(1) e por a
   ordem não importar, só a unicidade.
 - **Algoritmos**: `find_if` (busca por nome), `sort` (ordena por custo, com
@@ -222,47 +315,52 @@ classDiagram
   `tool_utils.hpp`, evitando laços manuais equivalentes.
 - **Concorrência**: `estimate_batches_parallel` (`concurrent_billing.hpp`)
   dispara um `std::async` por lote de tokens. É seguro paralelizar porque
-  `Model::estimate_cost` é `const` e cada lote não depende dos demais — o
+  `model::estimate_cost` é `const` e cada lote não depende dos demais — o
   único estado compartilhado é a trilha de auditoria (`audit_trail`),
   protegida por `std::mutex`/`std::lock_guard`; os resultados são coletados
   via `future::get()`.
-- **ThreadSanitizer**: `clang++ -std=c++20 -pthread -fsanitize=thread -Isrc
-  src/main.cpp -o tsan_app && ./tsan_app` roda limpo, sem nenhuma linha
+- **ThreadSanitizer**: roda limpo, sem nenhuma linha
   `WARNING: ThreadSanitizer` — confirma que o único estado mutável
   compartilhado entre as threads (`audit_trail`) está corretamente
-  protegido pelo mutex.
+  protegido pelo mutex. O `-I` do nlohmann é necessário porque `main.cpp`
+  inclui o repositório JSON da Questão 4:
+  ```
+  clang++ -std=c++20 -pthread -fsanitize=thread \
+      -Isrc -Ibuild/_deps/nlohmann_json-src/include \
+      src/main.cpp -o tsan_app && ./tsan_app
+  ```
 
 ## Serialização JSON (TP3 — Questão 4)
 
 - **`to_json`/`from_json` não-intrusivos** (`json_serialization.hpp`) para
-  `Model` e `AssistantSnapshot`, via nlohmann/json (`FetchContent`, tag
+  `model` e `assistant_snapshot`, via nlohmann/json (`FetchContent`, tag
   `v3.11.3`). O campo `"version"` acompanha todo snapshot; a hierarquia
-  polimórfica `Tool` (do TP2) ganha um campo `"type"`
+  polimórfica `tool` (do TP2) ganha um campo `"type"`
   (`"web_search_tool"`/`"calculator_tool"`) usado por uma fábrica
   (`tool_from_json`) para recriar o tipo concreto correto na
   desserialização — a serialização genérica do nlohmann não dá conta disso
-  sozinha porque `Tool` é abstrata.
-- `AssistantSnapshot` (`assistant_snapshot.hpp`) é o DTO persistido:
-  `assistant_name` + `Model` + `vector<shared_ptr<Tool>>`, com
+  sozinha porque `tool` é abstrata.
+- `assistant_snapshot` (`assistant_snapshot.hpp`) é o DTO persistido:
+  `assistant_name` + `model` + `vector<shared_ptr<tool>>`, com
   `operator==` estrutural usado para validar o round-trip nos testes.
 
 ## SOLID (TP3 — Questão 4)
 
-- **SRP**: `AssistantSnapshot` é responsável só por representar o estado
-  persistível; `AiAssistant` continua sem saber nada sobre JSON ou
-  arquivos. `PersistenceService` cuida só de orquestrar a persistência.
-- **OCP**: `Tool::equals()` é um ponto de extensão — novas ferramentas
-  sobrescrevem para comparar seus próprios campos sem alterar `Tool`. Limite
+- **SRP**: `assistant_snapshot` é responsável só por representar o estado
+  persistível; `ai_assistant` continua sem saber nada sobre JSON ou
+  arquivos. `persistence_service` cuida só de orquestrar a persistência.
+- **OCP**: `tool::equals()` é um ponto de extensão — novas ferramentas
+  sobrescrevem para comparar seus próprios campos sem alterar `tool`. Limite
   honesto: `tool_from_json` ainda é um `if/else` fechado sobre o campo
   `"type"` (nlohmann não oferece fábrica polimórfica automática); adicionar
-  uma nova `Tool` exige tocar essa função.
-- **LSP**: `WebSearchTool` e `CalculatorTool` são sempre substituíveis por
-  `Tool*`/`Tool&`, como já demonstrado no polimorfismo dinâmico do TP2.
-- **ISP**: `Billable` é uma interface mínima e independente — quem
-  implementa `Tool` não é obrigado a implementar `Billable`, e vice-versa.
-- **DIP**: `PersistenceService` depende só da abstração
-  `SnapshotRepository`, recebida por injeção no construtor. `JsonFileRepository`
-  (produção) e `MemoryRepository` (teste, sem tocar disco) são
+  uma nova `tool` exige tocar essa função.
+- **LSP**: `web_search_tool` e `calculator_tool` são sempre substituíveis por
+  `tool*`/`tool&`, como já demonstrado no polimorfismo dinâmico do TP2.
+- **ISP**: `billable` é uma interface mínima e independente — quem
+  implementa `tool` não é obrigado a implementar `billable`, e vice-versa.
+- **DIP**: `persistence_service` depende só da abstração
+  `snapshot_repository`, recebida por injeção no construtor. `json_file_repository`
+  (produção) e `memory_repository` (teste, sem tocar disco) são
   implementações intercambiáveis dessa abstração.
 
 ## Qt (TP3 — Questão 6, extra)
@@ -278,18 +376,16 @@ classDiagram
   COMPONENTS Widgets)` — se o Qt6 não for encontrado, o alvo `gui`
   simplesmente não é criado e o restante do build (`code_cluster`,
   `testes`, `testes_tp3`) continua funcionando normalmente.
-- **`MainWindow`** (`main_window.hpp`) é uma camada fina: cada slot só
-  chama métodos já existentes de `AiAssistant`/`PersistenceService`
-  (`add_tool`, `remove_tool`, `run_tool`, `PersistenceService::save/load`).
+- **`main_window`** (`main_window.hpp`) é uma camada fina: cada slot só
+  chama métodos já existentes de `ai_assistant`/`persistence_service`
+  (`add_tool`, `remove_tool`, `run_tool`, `persistence_service::save/load`).
   Nenhuma regra de negócio vive na janela — a mesma lógica continua
   testável sem GUI, como demonstrado em `tests/test_tp3.cpp`.
-  Operações expostas: listar ferramentas, adicionar (`WebSearchTool`/
-  `CalculatorTool`), remover a selecionada, executar a selecionada, e
+  Operações expostas: listar ferramentas, adicionar (`web_search_tool`/
+  `calculator_tool`), remover a selecionada, executar a selecionada, e
   Salvar/Carregar (integrados com a serialização JSON da Questão 4).
-- **Screenshot**: pendente de captura manual — a GUI foi validada
-  automaticamente (inicialização sem erros com
-  `QT_QPA_PLATFORM=offscreen`), mas a captura de tela em si depende de
-  permissão de gravação de tela do macOS, que não está disponível neste
-  ambiente de execução. Para gerar o screenshot: rodar `./build/gui`,
-  interagir com a janela e salvar a imagem em
-  `docs/screenshots/qt_gui.png`.
+- **Screenshot**: a janela em execução, com as duas ferramentas listadas, a
+  `calculator_tool` selecionada e o resultado de "Executar selecionada" na
+  barra de status:
+
+  ![GUI Qt em execução](docs/screenshots/qt_gui.png)

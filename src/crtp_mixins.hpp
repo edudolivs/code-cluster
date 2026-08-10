@@ -1,6 +1,6 @@
 // Mixins CRTP (Curiously Recurring Template Pattern): adicionam
 // comportamento estático a uma família de classes sem custo de vtable
-// (diferente da hierarquia polimórfica de Tool, que usa despacho virtual).
+// (diferente da hierarquia polimórfica de tool, que usa despacho virtual).
 
 #ifndef CRTP_MIXINS_HPP
 #define CRTP_MIXINS_HPP
@@ -11,16 +11,16 @@
 // O contador é um membro estático por instanciação do template, ou seja,
 // cada classe derivada tem sua própria contagem independente.
 template <typename Derived>
-class InstanceCounted {
+class instance_counted {
 protected:
-    InstanceCounted() { ++count_; }
-    InstanceCounted(const InstanceCounted&) { ++count_; }
-    InstanceCounted(InstanceCounted&&) noexcept { ++count_; }
-    ~InstanceCounted() { --count_; }
+    instance_counted() { ++count_; }
+    instance_counted(const instance_counted&) { ++count_; }
+    instance_counted(instance_counted&&) noexcept { ++count_; }
+    ~instance_counted() { --count_; }
 
     // Atribuição não cria nem destrói instâncias, então não altera a contagem
-    InstanceCounted& operator=(const InstanceCounted&) = default;
-    InstanceCounted& operator=(InstanceCounted&&) noexcept = default;
+    instance_counted& operator=(const instance_counted&) = default;
+    instance_counted& operator=(instance_counted&&) noexcept = default;
 
 public:
     static int alive() { return count_; }
@@ -33,7 +33,7 @@ private:
 // textual" padronizado sobre ele, resolvido em tempo de compilação
 // (static_cast para Derived, sem vtable).
 template <typename Derived>
-class TextualClonable {
+class textual_clonable {
 public:
     std::string clone_as_text() const {
         return static_cast<const Derived&>(*this).to_text();
