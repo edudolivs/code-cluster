@@ -38,6 +38,13 @@ target_compile_options(testes PRIVATE -Wall -Wextra)
 target_include_directories(testes PRIVATE src)
 target_link_libraries(testes PRIVATE Catch2::Catch2WithMain)
 
+# ---- Testes do TP3 (Questao 5, extra) — alvo separado do TP2 ----
+add_executable(testes_tp3 tests/test_tp3.cpp)
+target_compile_options(testes_tp3 PRIVATE -Wall -Wextra)
+target_include_directories(testes_tp3 PRIVATE src)
+target_link_libraries(testes_tp3 PRIVATE Catch2::Catch2WithMain nlohmann_json::nlohmann_json)
+
 include(CTest)
 include(Catch)
 catch_discover_tests(testes)
+catch_discover_tests(testes_tp3)
