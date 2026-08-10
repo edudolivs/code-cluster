@@ -173,3 +173,37 @@ classDiagram
   ninguém herde dela para alterar esse comportamento (qualquer tentativa gera erro
   "cannot derive from final"), documenta a intenção de design e permite ao
   compilador devirtualizar chamadas quando o tipo estático é `CalculatorTool`.
+
+## Programação Genérica (TP3 — Questão 1)
+
+- **Template `Catalog<T>`** (`catalog.hpp`): abstrai a ideia de um *registro
+  pesquisável por nome* sobre qualquer tipo do domínio — não é um `vector`
+  disfarçado, pois adiciona a operação `find_by_name()` (retornando
+  `std::optional<T>`) que um `vector` não oferece. É instanciado com dois
+  tipos diferentes em `main()`: `Catalog<Model>` e `Catalog<User>`, ambos
+  aceitos por já exporem `get_name()`.
+
+- **CRTP em vez de herança virtual**: `Message` e `Session` ganham contagem
+  de instâncias (`InstanceCounted<Derived>`) e clonagem textual
+  (`TextualClonable<Derived>`) via CRTP (`crtp_mixins.hpp`). Diferente de
+  `Tool` — que precisa de despacho em tempo de execução porque o código
+  cliente não conhece o tipo concreto ao iterar `vector<unique_ptr<Tool>>` —
+  aqui o tipo derivado é sempre conhecido em tempo de compilação
+  (`Message`/`Session` nunca são acessados por ponteiro/referência à base).
+  Uma hierarquia virtual pagaria o custo de uma vtable e uma indireção por
+  chamada sem necessidade; o CRTP resolve o `static_cast<const Derived&>`
+  em tempo de compilação, sem vtable.
+
+- **Concept `nameable`**: restringe `Catalog<T>` a tipos com
+  `get_name() -> convertible_to<std::string>`. Instanciar `Catalog<int>`
+  produz um erro de compilação citando diretamente `nameable` (testado com
+  `clang++ -std=c++20 -fsyntax-only`), em vez de uma cascata de erros de
+  template sem relação clara com a causa.
+
+- **Pipeline de ranges**: `AiAssistant::affordable_tool_names(max_cost)`
+  encadeia `views::filter` (ferramentas ativas dentro do orçamento) e
+  `views::transform` (extrai o nome). Antes (laço tradicional, como em
+  `list_tools()`): um `for` acumulando uma `std::string` com condicionais
+  intercaladas. Depois (ranges): a intenção — filtrar, depois projetar —
+  fica explícita na composição dos adaptadores, sem vetor intermediário
+  para o resultado filtrado.

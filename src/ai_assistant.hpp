@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <memory>
+#include <ranges>
 #include <string>
 #include <vector>
 
@@ -73,6 +74,21 @@ public:
             }
         }
         return result;
+    }
+
+    // Retorna os nomes das ferramentas ativas com custo por chamada até
+    // 'max_cost', usando um pipeline de ranges (C++20) com dois adaptadores
+    // encadeados: filter (ativas e dentro do orçamento) + transform (nome).
+    // Ver README ("Programação Genérica") para o contraste com list_tools().
+    std::vector<std::string> affordable_tool_names(double max_cost) const {
+        auto names = tools_
+            | std::views::filter([max_cost](const std::shared_ptr<Tool>& tool) {
+                  return tool->is_enabled() && tool->cost_per_call() <= max_cost;
+              })
+            | std::views::transform([](const std::shared_ptr<Tool>& tool) {
+                  return tool->get_name();
+              });
+        return std::vector<std::string>(names.begin(), names.end());
     }
 
     // Gera um relatório completo do estado do assistente

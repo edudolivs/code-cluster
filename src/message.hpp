@@ -6,7 +6,12 @@
 
 #include <string>
 
-class Message {
+#include "crtp_mixins.hpp"
+
+// Message usa CRTP (InstanceCounted/TextualClonable) para ganhar contagem
+// de instâncias e clonagem textual sem custo de vtable — família sem
+// polimorfismo dinâmico, ao contrário de Tool.
+class Message : public InstanceCounted<Message>, public TextualClonable<Message> {
 private:
     std::string role_;       // papel do remetente (ex: "user", "assistant")
     std::string content_;    // conteúdo da mensagem
@@ -27,6 +32,9 @@ public:
     std::string format() const {
         return "[" + timestamp_ + "] " + role_ + ": " + content_;
     }
+
+    // Requisito do mixin TextualClonable — reaproveita a formatação já existente
+    std::string to_text() const { return format(); }
 };
 
 #endif // MESSAGE_HPP

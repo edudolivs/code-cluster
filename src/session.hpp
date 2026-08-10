@@ -9,10 +9,14 @@
 #include <string>
 #include <vector>
 
+#include "crtp_mixins.hpp"
 #include "message.hpp"
 #include "user.hpp"
 
-class Session {
+// Session usa CRTP (InstanceCounted/TextualClonable) — mesma técnica de
+// Message, sem custo de vtable, adequada porque Session não participa de
+// uma hierarquia polimórfica.
+class Session : public InstanceCounted<Session>, public TextualClonable<Session> {
 private:
     int id_;                        // identificador da sessão
     std::vector<Message> messages_; // mensagens da sessão (composição)
@@ -49,6 +53,9 @@ public:
         summary += " | Mensagens: " + std::to_string(messages_.size());
         return summary;
     }
+
+    // Requisito do mixin TextualClonable — reaproveita o resumo já existente
+    std::string to_text() const { return summarize(); }
 };
 
 #endif // SESSION_HPP

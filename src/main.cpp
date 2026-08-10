@@ -16,6 +16,7 @@
 #include "message.hpp"
 #include "session.hpp"
 #include "ai_assistant.hpp"
+#include "catalog.hpp"
 
 using std::cout;
 using std::endl;
@@ -131,6 +132,40 @@ int main() {
     cout << "Fatura da ferramenta " << search->get_name()
          << " (" << search->get_calls() << " busca(s) realizada(s)):" << endl;
     print_bill(*search);  // WebSearchTool passado como const Billable&
+
+    // ========================================================================
+    // PARTE 7: Programacao Generica - Templates, CRTP, Concepts, Ranges (TP3-Q1)
+    // ========================================================================
+    cout << "\n=== 7. PROGRAMACAO GENERICA (TP3 - Questao 1) ===" << endl;
+
+    // (A) Catalog<T> instanciado com dois tipos diferentes, restringido
+    // pelo concept 'nameable' (T precisa expor get_name())
+    Catalog<Model> model_catalog;
+    model_catalog.add(*gpt);
+    model_catalog.add(Model("Claude-Opus", 200000, 0.000015));
+    cout << "\n[Catalog<Model>] " << model_catalog.size() << " modelo(s) cadastrado(s)" << endl;
+    auto found_model = model_catalog.find_by_name("Claude-Opus");
+    cout << "Busca 'Claude-Opus': " << (found_model.has_value() ? "encontrado" : "nao encontrado") << endl;
+
+    Catalog<User> user_catalog;
+    user_catalog.add(user1);
+    user_catalog.add(User("Ana", "ana@email.com"));
+    cout << "[Catalog<User>] " << user_catalog.size() << " usuario(s) cadastrado(s)" << endl;
+    auto missing_user = user_catalog.find_by_name("Inexistente");
+    cout << "Busca 'Inexistente': " << (missing_user.has_value() ? "encontrado" : "nao encontrado") << endl;
+
+    // (B) CRTP - contagem de instancias sem vtable (Message/Session)
+    cout << "\n[CRTP InstanceCounted] Messages vivas: " << Message::alive()
+         << " | Sessions vivas: " << Session::alive() << endl;
+    cout << "[CRTP TextualClonable] clone textual da sessao: "
+         << main_session.clone_as_text() << endl;
+
+    // (E) Pipeline de ranges com dois adaptadores encadeados (filter + transform)
+    auto cheap_tools = main_assistant.affordable_tool_names(0.001);
+    cout << "\n[ranges: filter | transform] Ferramentas ativas ate $0.001/chamada:" << endl;
+    for (const auto& name : cheap_tools) {
+        cout << "  - " << name << endl;
+    }
 
     cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;
