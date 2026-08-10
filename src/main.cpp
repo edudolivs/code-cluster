@@ -17,6 +17,7 @@
 #include "session.hpp"
 #include "ai_assistant.hpp"
 #include "catalog.hpp"
+#include "exceptions.hpp"
 
 using std::cout;
 using std::endl;
@@ -166,6 +167,60 @@ int main() {
     for (const auto& name : cheap_tools) {
         cout << "  - " << name << endl;
     }
+
+    // ========================================================================
+    // PARTE 8: Tratamento de Erros - excecoes, optional, variant (TP3-Q2)
+    // ========================================================================
+    cout << "\n=== 8. TRATAMENTO DE ERROS (TP3 - Questao 2) ===" << endl;
+
+    main_assistant.register_available_model(*gpt);
+
+    // (D) try/catch capturando pela classe BASE (LlmServiceError)
+    cout << "\n[try/catch pela base] selecionando modelo inexistente:" << endl;
+    try {
+        main_assistant.select_model("Modelo-Fantasma");
+    } catch (const LlmServiceError& e) {
+        cout << "  Capturado (base LlmServiceError): " << e.what() << endl;
+    }
+
+    cout << "[try/catch pela base] selecionando modelo existente:" << endl;
+    try {
+        main_assistant.select_model("GPT-4o");
+        cout << "  Modelo selecionado com sucesso." << endl;
+    } catch (const LlmServiceError& e) {
+        cout << "  Capturado (base LlmServiceError): " << e.what() << endl;
+    }
+
+    // (D) optional nos dois casos: achou / nao achou
+    auto model_found = main_assistant.find_available_model("GPT-4o");
+    cout << "\n[optional] find_available_model(\"GPT-4o\"): "
+         << (model_found.has_value() ? "achou (" + model_found->get_name() + ")" : "nao achou") << endl;
+    auto model_missing = main_assistant.find_available_model("Modelo-Fantasma");
+    cout << "[optional] find_available_model(\"Modelo-Fantasma\"): "
+         << (model_missing.has_value() ? "achou" : "nao achou") << endl;
+
+    // (D) variant: sucesso (ToolOutput) ou erro (string)
+    cout << "\n[variant] run_tool(\"calculator\", ...):" << endl;
+    auto outcome_ok = main_assistant.run_tool("calculator", "2 + 2");
+    std::visit([](const auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, AiAssistant::ToolOutput>) {
+            cout << "  Sucesso: " << value.content << " (custo $" << value.cost << ")" << endl;
+        } else {
+            cout << "  Erro: " << value << endl;
+        }
+    }, outcome_ok);
+
+    cout << "[variant] run_tool(\"ferramenta_inexistente\", ...):" << endl;
+    auto outcome_err = main_assistant.run_tool("ferramenta_inexistente", "input");
+    std::visit([](const auto& value) {
+        using T = std::decay_t<decltype(value)>;
+        if constexpr (std::is_same_v<T, AiAssistant::ToolOutput>) {
+            cout << "  Sucesso: " << value.content << " (custo $" << value.cost << ")" << endl;
+        } else {
+            cout << "  Erro: " << value << endl;
+        }
+    }, outcome_err);
 
     cout << "\n[Encerrando o programa (main_assistant sera destruido agora)]" << endl;
     return 0;

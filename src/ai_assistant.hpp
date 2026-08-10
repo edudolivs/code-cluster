@@ -7,10 +7,15 @@
 
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <string>
+#include <variant>
 #include <vector>
 
+#include "billable.hpp"
+#include "catalog.hpp"
+#include "exceptions.hpp"
 #include "model.hpp"
 #include "session.hpp"
 #include "tool.hpp"
@@ -22,8 +27,17 @@ private:
     std::shared_ptr<Model> model_;                  // modelo de linguagem utilizado (agregação via shared_ptr)
     std::vector<std::shared_ptr<Tool>> tools_;      // ferramentas disponíveis (agregação via shared_ptr)
     std::vector<std::unique_ptr<Session>> sessions_; // sessões gerenciadas (composição via unique_ptr)
+    Catalog<Model> available_models_;               // modelos cadastrados, pesquisáveis por nome
 
 public:
+    // Resultado da execução de uma ferramenta: dados de sucesso ou mensagem de erro
+    struct ToolOutput {
+        std::string tool_name;
+        std::string content;
+        double cost;
+    };
+    using ExecutionOutcome = std::variant<ToolOutput, std::string>;
+
     // Construtor com lista de inicialização
     AiAssistant(const std::string& name)
         : name_(name), model_(nullptr), tools_(), sessions_() {
@@ -89,6 +103,59 @@ public:
                   return tool->get_name();
               });
         return std::vector<std::string>(names.begin(), names.end());
+    }
+
+    // Cadastra um modelo no catálogo de modelos disponíveis para seleção
+    void register_available_model(const Model& model) {
+        available_models_.add(model);
+    }
+
+    // Busca um modelo disponível pelo nome — retorna nullopt se não achar,
+    // em vez de lançar exceção ou devolver ponteiro nulo (TP3-Q2-B).
+    std::optional<Model> find_available_model(const std::string& name) const {
+        return available_models_.find_by_name(name);
+    }
+
+    // Seleciona o modelo ativo do assistente pelo nome. Lança
+    // ModelNotFoundError (derivada de LlmServiceError) se o modelo não
+    // estiver cadastrado no catálogo (TP3-Q2-A).
+    void select_model(const std::string& name) {
+        auto found = find_available_model(name);
+        if (!found.has_value()) {
+            throw ModelNotFoundError(name);
+        }
+        model_ = std::make_shared<Model>(*found);
+    }
+
+    // Verifica se o custo total já faturado (modelo + ferramentas
+    // faturáveis) ultrapassa o limite informado. Lança BudgetExceededError
+    // (derivada de LlmServiceError) em caso de estouro (TP3-Q2-A).
+    void enforce_budget(double limit) const {
+        double spent = 0.0;
+        if (model_ != nullptr) {
+            spent += model_->billed_cost();
+        }
+        for (const auto& tool : tools_) {
+            const auto* billable = dynamic_cast<const Billable*>(tool.get());
+            if (billable != nullptr) {
+                spent += billable->billed_cost();
+            }
+        }
+        if (spent > limit) {
+            throw BudgetExceededError(spent, limit);
+        }
+    }
+
+    // Executa a ferramenta de nome 'name' com o input informado. Retorna um
+    // variant: ToolOutput em caso de sucesso, ou uma mensagem de erro em
+    // std::string caso a ferramenta não exista (TP3-Q2-C).
+    ExecutionOutcome run_tool(const std::string& name, const std::string& input) const {
+        for (const auto& tool : tools_) {
+            if (tool->get_name() == name) {
+                return ToolOutput{tool->get_name(), tool->execute(input), tool->cost_per_call()};
+            }
+        }
+        return std::string("ferramenta nao encontrada: " + name);
     }
 
     // Gera um relatório completo do estado do assistente
