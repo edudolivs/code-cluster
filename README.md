@@ -384,6 +384,12 @@ classDiagram
   Operações expostas: listar ferramentas, adicionar (`web_search_tool`/
   `calculator_tool`), remover a selecionada, executar a selecionada, e
   Salvar/Carregar (integrados com a serialização JSON da Questão 4).
+- **Seleção por posição**: a janela endereça a ferramenta pelo índice da
+  linha (`run_tool_at`/`remove_tool_at`), não pelo nome — duas
+  `web_search_tool` se chamam ambas `"web_search"`, então a busca por nome
+  atingiria sempre a primeira. Após executar, a lista é reconstruída para
+  que `describe()` mostre a contagem atualizada, preservando a linha
+  selecionada. Coberto por teste sem GUI em `tests/test_tp3.cpp`.
 - **Screenshot**: a janela em execução, com as duas ferramentas listadas, a
   `calculator_tool` selecionada e o resultado de "Executar selecionada" na
   barra de status:

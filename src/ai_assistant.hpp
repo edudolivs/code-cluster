@@ -65,16 +65,19 @@ public:
         tools_.push_back(current_tool);
     }
 
-    // Remove a primeira ferramenta com o nome informado. Retorna true se
-    // alguma ferramenta foi removida (TP3-Q6-A: operacao exposta pela GUI).
-    bool remove_tool(const std::string& name) {
-        for (auto it = tools_.begin(); it != tools_.end(); ++it) {
-            if ((*it)->get_name() == name) {  // primeira ocorrencia do nome
-                tools_.erase(it);
-                return true;
-            }
+    // Remove a ferramenta na posicao 'index'. Retorna false se o indice nao
+    // existir (TP3-Q6-A: operacao exposta pela GUI).
+    bool remove_tool_at(std::size_t index) {
+        if (index >= tools_.size()) {
+            return false;
         }
-        return false;
+        tools_.erase(tools_.begin() + static_cast<std::ptrdiff_t>(index));
+        return true;
+    }
+
+    // Descarta todas as ferramentas — usado ao recarregar o estado do disco.
+    void clear_tools() {
+        tools_.clear();
     }
 
     // Cria uma nova sessão para o usuário e a armazena internamente.
@@ -160,10 +163,11 @@ public:
         }
     }
 
-    // Executa a ferramenta de nome 'name' com o input informado. Retorna um
-    // variant: tool_output em caso de sucesso, ou uma mensagem de erro em
-    // std::string caso a ferramenta não exista (TP3-Q2-C).
-    execution_outcome run_tool(const std::string& name, const std::string& input) const {
+    // Executa a PRIMEIRA ferramenta de nome 'name' com o input informado.
+    // Retorna um variant: tool_output em caso de sucesso, ou uma mensagem de
+    // erro em std::string caso a ferramenta não exista (TP3-Q2-C).
+    // Não é const porque tool::execute() muta o estado da ferramenta.
+    execution_outcome run_tool(const std::string& name, const std::string& input) {
         for (const auto& current_tool : tools_) {
             if (current_tool->get_name() == name) {
                 return tool_output{current_tool->get_name(), current_tool->execute(input),
@@ -171,6 +175,19 @@ public:
             }
         }
         return std::string("ferramenta nao encontrada: " + name);
+    }
+
+    // Executa a ferramenta na posicao 'index'. A GUI endereça por posição,
+    // não por nome: o nome não é identidade, já que várias ferramentas do
+    // mesmo tipo o compartilham (duas web_search_tool se chamam "web_search")
+    // e a busca por nome sempre atingiria a primeira delas (TP3-Q6).
+    execution_outcome run_tool_at(std::size_t index, const std::string& input) {
+        if (index >= tools_.size()) {
+            return std::string("indice de ferramenta invalido: " + std::to_string(index));
+        }
+        const auto& current_tool = tools_[index];
+        return tool_output{current_tool->get_name(), current_tool->execute(input),
+                          current_tool->cost_per_call()};
     }
 
     // Gera um relatório completo do estado do assistente

@@ -9,7 +9,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QListWidget>
-#include <QListWidgetItem>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -62,11 +61,18 @@ public:
     }
 
 private slots:
-    // Reconstrói a lista exibida a partir do estado atual do assistente
+    // Reconstrói a lista exibida a partir do estado atual do assistente,
+    // preservando a linha selecionada — sem isso, atualizar a lista após
+    // executar apagaria a seleção e o usuário teria de reselecionar a cada
+    // clique.
     void refresh_tool_list() {
+        const int previous_row = tool_list_->currentRow();
         tool_list_->clear();
         for (const auto& current_tool : assistant_.get_tools()) {
             tool_list_->addItem(QString::fromStdString(current_tool->describe()));
+        }
+        if (previous_row >= 0 && previous_row < tool_list_->count()) {
+            tool_list_->setCurrentRow(previous_row);
         }
     }
 
@@ -83,13 +89,14 @@ private slots:
     }
 
     void remove_selected_tool() {
-        const QListWidgetItem* selected = tool_list_->currentItem();
-        if (selected == nullptr) {
+        const int row = tool_list_->currentRow();
+        if (row < 0) {
             status_label_->setText("Nenhuma ferramenta selecionada.");
             return;
         }
-        const std::string tool_name = selected_tool_name();
-        const bool removed = assistant_.remove_tool(tool_name);
+        const auto index = static_cast<std::size_t>(row);
+        const std::string tool_name = assistant_.get_tools()[index]->get_name();
+        const bool removed = assistant_.remove_tool_at(index);
         refresh_tool_list();
         status_label_->setText(removed
             ? QString::fromStdString("Removida: " + tool_name)
@@ -97,12 +104,12 @@ private slots:
     }
 
     void execute_selected_tool() {
-        if (tool_list_->currentItem() == nullptr) {
+        const int row = tool_list_->currentRow();
+        if (row < 0) {
             status_label_->setText("Nenhuma ferramenta selecionada.");
             return;
         }
-        const std::string tool_name = selected_tool_name();
-        auto outcome = assistant_.run_tool(tool_name, "entrada da GUI");
+        auto outcome = assistant_.run_tool_at(static_cast<std::size_t>(row), "entrada da GUI");
         std::visit([this](const auto& value) {
             using T = std::decay_t<decltype(value)>;
             if constexpr (std::is_same_v<T, ai_assistant::tool_output>) {
@@ -111,6 +118,9 @@ private slots:
                 status_label_->setText(QString::fromStdString(value));
             }
         }, outcome);
+        // Reexibe a lista para que describe() mostre o estado novo da
+        // ferramenta (ex.: "buscas realizadas" da web_search_tool).
+        refresh_tool_list();
     }
 
     void save_state() {
@@ -126,9 +136,7 @@ private slots:
         try {
             assistant_snapshot snapshot = persistence_.load();
             assistant_.set_model(std::make_shared<model>(snapshot.assistant_model));
-            for (const auto& tool_name : tool_names_currently_loaded()) {
-                assistant_.remove_tool(tool_name);
-            }
+            assistant_.clear_tools();
             for (const auto& current_tool : snapshot.tools) {
                 assistant_.add_tool(current_tool);
             }
@@ -144,26 +152,6 @@ private:
     persistence_service& persistence_;
     QListWidget* tool_list_;
     QLabel* status_label_;
-
-    // Extrai o nome da ferramenta a partir do texto de describe() exibido
-    // no item selecionado (formato "[nome] ...").
-    std::string selected_tool_name() const {
-        const std::string text = tool_list_->currentItem()->text().toStdString();
-        const auto start = text.find('[');
-        const auto end = text.find(']');
-        if (start == std::string::npos || end == std::string::npos) {
-            return "";
-        }
-        return text.substr(start + 1, end - start - 1);
-    }
-
-    std::vector<std::string> tool_names_currently_loaded() const {
-        std::vector<std::string> names;
-        for (const auto& current_tool : assistant_.get_tools()) {
-            names.push_back(current_tool->get_name());
-        }
-        return names;
-    }
 };
 
 #endif // MAIN_WINDOW_HPP

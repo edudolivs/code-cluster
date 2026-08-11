@@ -67,6 +67,35 @@ TEST_CASE("Q4 (TP3): serializacao round-trip via nlohmann::json", "[tp3][q4]") {
     REQUIRE(document.at("version").get<int>() == 1);
 }
 
+TEST_CASE("Q6 (TP3): run_tool_at atinge a instancia selecionada", "[tp3][q6]") {
+    // Duas web_search_tool compartilham o nome "web_search": endereçar por
+    // nome sempre atingiria a primeira. A GUI endereça por posição.
+    ai_assistant assistant("Assistente de Teste");
+    auto first = std::make_shared<web_search_tool>();
+    auto second = std::make_shared<web_search_tool>();
+    assistant.add_tool(first);
+    assistant.add_tool(second);
+
+    assistant.run_tool_at(1, "consulta");
+
+    REQUIRE(second->get_calls() == 1);
+    REQUIRE(first->get_calls() == 0);  // a primeira NAO foi tocada
+    REQUIRE(assistant.get_tools()[1]->describe().find("buscas realizadas: 1")
+            != std::string::npos);     // describe() reflete a contagem nova
+
+    SECTION("indice fora da faixa devolve a alternativa de erro do variant") {
+        auto outcome = assistant.run_tool_at(99, "consulta");
+        REQUIRE(std::holds_alternative<std::string>(outcome));
+    }
+
+    SECTION("remove_tool_at remove a instancia da posicao pedida") {
+        REQUIRE(assistant.remove_tool_at(0));
+        REQUIRE(assistant.get_tools().size() == 1);
+        REQUIRE(assistant.get_tools()[0] == second);  // sobrou a certa
+        REQUIRE_FALSE(assistant.remove_tool_at(99));
+    }
+}
+
 TEST_CASE("Q4 (TP3): DIP - memory_repository exercita a logica sem tocar disco", "[tp3][q4][dip]") {
     ai_assistant assistant("Assistente de Teste");
     assistant.set_model(std::make_shared<model>("GPT-4o", 8192, 0.00003));
