@@ -341,8 +341,11 @@ classDiagram
   desserialização — a serialização genérica do nlohmann não dá conta disso
   sozinha porque `tool` é abstrata.
 - `assistant_snapshot` (`assistant_snapshot.hpp`) é o DTO persistido:
-  `assistant_name` + `model` + `vector<shared_ptr<tool>>`, com
-  `operator==` estrutural usado para validar o round-trip nos testes.
+  `assistant_name` + `assistant_model` + `tools`
+  (`vector<shared_ptr<tool>>`), com `operator==` estrutural usado para
+  validar o round-trip nos testes. O membro se chama `assistant_model`
+  porque `model` colidiria com o nome do tipo; a chave JSON continua
+  sendo `"model"`.
 
 ## SOLID (TP3 — Questão 4)
 
@@ -378,7 +381,8 @@ classDiagram
   `testes`, `testes_tp3`) continua funcionando normalmente.
 - **`main_window`** (`main_window.hpp`) é uma camada fina: cada slot só
   chama métodos já existentes de `ai_assistant`/`persistence_service`
-  (`add_tool`, `remove_tool`, `run_tool`, `persistence_service::save/load`).
+  (`add_tool`, `remove_tool_at`, `run_tool_at`, `clear_tools`,
+  `persistence_service::save/load`).
   Nenhuma regra de negócio vive na janela — a mesma lógica continua
   testável sem GUI, como demonstrado em `tests/test_tp3.cpp`.
   Operações expostas: listar ferramentas, adicionar (`web_search_tool`/
